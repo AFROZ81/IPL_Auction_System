@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - IPL Auction Elite</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <style>
+        :root {
+            --ipl-gold: #eab308;
+            --ipl-navy: #0f172a;
+            --ipl-accent: #1e293b;
+        }
+
+        body {
+            background-color: var(--ipl-navy);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            color: #f8fafc;
+        }
+
+        .navbar {
+            background-color: var(--ipl-accent) !important;
+            border-bottom: 2px solid var(--ipl-gold);
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: var(--ipl-gold) !important;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+            .nav-link:hover {
+                color: var(--ipl-gold) !important;
+            }
+
+        .footer {
+            background-color: var(--ipl-accent);
+            color: #94a3b8;
+        }
+        /* Custom card styling for the whole app */
+        .card {
+            border: 1px solid #334155;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                    <i class="fa-solid fa-trophy me-2"></i>IPL AUCTION
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Auction" asp-action="Index"><i class="fa-solid fa-gavel me-1"></i> Live Auction</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Dashboard" asp-action="Index"><i class="fa-solid fa-chart-line me-1"></i> Dashboard</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="manageDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-gear me-1"></i> Management
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-dark">
+                                <li><a class="dropdown-item" asp-controller="Teams" asp-action="Index">Teams Management</a></li>
+                                <li><a class="dropdown-item" asp-controller="Players" asp-action="Index">Players Management</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="footer mt-auto py-3 text-center">
+        <div class="container">
+            &copy; 2026 - <span class="text-warning fw-bold">IPL Auction Elite System</span> - Built for Fun Auction
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

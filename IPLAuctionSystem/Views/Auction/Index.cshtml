@@ -1,0 +1,218 @@
+﻿@model IPLAuctionSystem.Models.Player
+
+@{
+    ViewData["Title"] = "Live Auction War Room";
+}
+
+@functions {
+    public string FormatCurrency(decimal amount)
+    {
+        if (amount >= 10000000) return $"₹ {(amount / 10000000).ToString("0.##")} Cr";
+        if (amount >= 100000) return $"₹ {(amount / 100000).ToString("0.##")} L";
+        return $"₹ {amount.ToString("N0")}";
+    }
+}
+
+<div class="container-fluid py-4 bg-black" style="min-height: 100vh;">
+    @* Status Bar *@
+    <div class="d-flex justify-content-between align-items-center mb-4 px-3 py-2 bg-dark rounded-3 border border-secondary">
+        <div class="d-flex align-items-center">
+            <div class="spinner-grow text-danger spinner-grow-sm me-2" role="status"></div>
+            <span class="text-white fw-bold ls-1">LIVE AUCTION SESSION</span>
+        </div>
+        <div id="connectionStatus" class="badge bg-outline-success text-success border border-success px-3">
+            <i class="fa-solid fa-signal me-1"></i> CONNECTED
+        </div>
+    </div>
+
+    @if (Model == null)
+    {
+        <div class="text-center py-5">
+            <div class="display-1 text-secondary mb-4"><i class="fa-solid fa-flag-checkered"></i></div>
+            <h2 class="text-white fw-bold">AUCTION CONCLUDED</h2>
+            <p class="text-secondary">All players have been processed.</p>
+            <a asp-controller="Dashboard" asp-action="Index" class="btn btn-warning px-5 fw-bold">View Summary</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @* Left Column: Player Info *@
+            <div class="col-lg-5">
+                <div class="card bg-dark border-warning border-2 shadow-lg h-100">
+                    <div class="card-header bg-warning text-dark text-center py-3">
+                        <h4 class="mb-0 fw-extrabold text-uppercase">Now on the Block</h4>
+                    </div>
+                    <div class="card-body p-5 text-center">
+                        <div class="mx-auto mb-4 bg-secondary rounded-circle d-flex align-items-center justify-content-center border border-warning shadow" style="width: 140px; height: 140px;">
+                            <i class="fa-solid fa-user-tie display-1 text-dark"></i>
+                        </div>
+                        <h1 class="display-4 fw-bold text-white mb-2 text-uppercase">@Model.Name</h1>
+                        <span class="badge bg-info fs-6 px-4 py-2 rounded-pill mb-4 text-uppercase">@Model.Category</span>
+
+                        <div class="row g-3 mt-2">
+                            <div class="col-6">
+                                <div class="p-3 rounded bg-accent border border-secondary d-flex flex-column justify-content-center" style="height: 110px;">
+                                    <small class="text-secondary d-block text-uppercase fw-bold mb-1">Base Price</small>
+                                    <h3 class="text-white mb-0 fw-bold">@FormatCurrency(Model.BasePrice)</h3>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 rounded bg-warning-subtle border border-warning shadow-sm d-flex flex-column justify-content-center" style="height: 110px;">
+                                    <small class="text-warning d-block text-uppercase fw-bold mb-1">Current Bid</small>
+                                    <h3 id="currentBidDisplay" class="text-warning fw-extrabold mb-0">@FormatCurrency(Model.BasePrice)</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-accent border-top border-secondary py-4 px-4 text-center">
+                        <h6 class="text-secondary text-uppercase small mb-3">Winning Franchise</h6>
+                        <div id="currentWinningTeam" class="h4 text-info fw-bold mb-0 italic">Waiting for First Bid...</div>
+                    </div>
+                </div>
+            </div>
+
+            @* Right Column: Bidding Controls *@
+            <div class="col-lg-7">
+                <div class="card bg-dark border-secondary shadow-lg mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="text-white mb-4"><i class="fa-solid fa-gavel me-2 text-warning"></i>Place a Bid</h5>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label text-secondary small fw-bold">SELECT TEAM</label>
+                                <select id="teamSelector" class="form-select bg-black text-white border-secondary py-3" asp-items="ViewBag.Teams">
+                                    <option value="">Choose Franchise...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-secondary small fw-bold">BID AMOUNT</label>
+                                <input type="number" id="bidAmountInput" class="form-control bg-black text-white border-secondary py-3" value="@(Model.BasePrice + 200000)" step="100000" />
+                            </div>
+                            <div class="col-md-3">
+                                <button id="placeBidBtn" class="btn btn-warning w-100 py-3 fw-bold shadow">SUBMIT BID</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* History Feed *@
+                <div class="card bg-dark border-secondary shadow-lg" style="height: 300px;">
+                    <div class="card-header bg-accent border-secondary py-3">
+                        <span class="text-white fw-bold">Live Bidding History</span>
+                    </div>
+                    <div class="card-body p-0 overflow-auto" id="bidHistoryList">
+                        <div id="emptyFeedMessage" class="p-4 text-center text-secondary mt-5">
+                            <p>Bidding for <strong>@Model.Name</strong> is officially open.</p>
+                        </div>
+                    </div>
+                </div>
+
+                @* Final Actions *@
+                <div class="mt-4 d-flex justify-content-end gap-3">
+                    <form asp-action="MarkUnsold" method="post">
+                        <input type="hidden" name="playerId" value="@Model.Id" />
+                        <button type="submit" class="btn btn-outline-secondary btn-lg px-4 border-2 fw-bold">UNSOLD</button>
+                    </form>
+
+                    <form asp-action="SellPlayer" method="post" id="finalSaleForm">
+                        <input type="hidden" name="playerId" value="@Model.Id" />
+                        <input type="hidden" name="finalPrice" id="finalPriceHidden" value="@Model.BasePrice" />
+                        <input type="hidden" name="teamId" id="winningTeamIdHidden" value="" />
+                        <button type="submit" class="btn btn-outline-danger btn-lg px-5 border-2 fw-bold">
+                            <i class="fa-solid fa-hammer me-2"></i>SOLD
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .bg-accent {
+        background-color: #1e293b;
+    }
+
+    .bg-warning-subtle {
+        background-color: rgba(234, 179, 8, 0.1);
+    }
+
+    .fw-extrabold {
+        font-weight: 800;
+    }
+
+    .ls-1 {
+        letter-spacing: 1px;
+    }
+
+    .bid-entry {
+        border-bottom: 1px solid #334155;
+        padding: 15px 20px;
+        animation: slideInRight 0.4s ease-out;
+        background: linear-gradient(90deg, #1e293b 0%, transparent 100%);
+    }
+
+    @@keyframes slideInRight {
+        from {
+            transform: translateX(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        let currentHighestBid = @(Model?.BasePrice ?? 0);
+
+        function formatJSPrice(amount) {
+            if (amount >= 10000000) return "₹ " + (amount / 10000000).toFixed(2) + " Cr";
+            if (amount >= 100000) return "₹ " + (amount / 100000).toFixed(2) + " L";
+            return "₹ " + amount.toLocaleString();
+        }
+
+        document.getElementById("placeBidBtn").addEventListener("click", function () {
+            const teamSelect = document.getElementById("teamSelector");
+            const teamName = teamSelect.options[teamSelect.selectedIndex].text;
+            const teamId = teamSelect.value;
+            const bidAmount = parseInt(document.getElementById("bidAmountInput").value);
+
+            if (!teamId || isNaN(bidAmount)) {
+                alert("Select a team and amount!");
+                return;
+            }
+
+            // Update Logic
+            currentHighestBid = bidAmount;
+            document.getElementById("finalPriceHidden").value = bidAmount;
+            document.getElementById("winningTeamIdHidden").value = teamId;
+
+            // Update UI
+            document.getElementById("currentBidDisplay").innerText = formatJSPrice(bidAmount);
+            document.getElementById("currentWinningTeam").innerText = teamName;
+
+            const historyList = document.getElementById("bidHistoryList");
+            const emptyMsg = document.getElementById("emptyFeedMessage");
+            if (emptyMsg) emptyMsg.remove();
+
+            const newEntry = document.createElement("div");
+            newEntry.className = "bid-entry d-flex justify-content-between align-items-center";
+            newEntry.innerHTML = `<div><span class="text-info fw-bold">${teamName}</span></div><h5 class="text-warning mb-0 fw-bold">${formatJSPrice(bidAmount)}</h5>`;
+            historyList.prepend(newEntry);
+
+            document.getElementById("bidAmountInput").value = bidAmount + 500000;
+        });
+
+        // Validation: Block "SOLD" if no one has bid
+        document.getElementById("finalSaleForm").addEventListener("submit", function (e) {
+            if (!document.getElementById("winningTeamIdHidden").value) {
+                e.preventDefault();
+                alert("No bids placed! Use 'UNSOLD' instead.");
+            }
+        });
+    </script>
+}

@@ -1,0 +1,155 @@
+﻿@model IPLAuctionSystem.Models.Player
+
+@{
+    ViewData["Title"] = "Draft New Player";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="mb-4">
+                <a asp-action="Index" class="text-warning text-decoration-none small">
+                    <i class="fa-solid fa-chevron-left me-1"></i> Back to Roster
+                </a>
+            </div>
+
+            <div class="card bg-dark border-secondary shadow-lg overflow-hidden">
+                <div class="card-header bg-primary text-white p-4 border-bottom border-primary">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                            <i class="fa-solid fa-user-plus fs-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold">DRAFT NEW PLAYER</h3>
+                            <p class="mb-0 small opacity-75">Enter scouting details and upload a profile photo.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 p-lg-5">
+                    <form asp-action="Create" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger bg-danger text-white border-0 small"></div>
+
+                        <div class="row g-4">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label text-uppercase small fw-bold text-secondary">Player Profile Photo</label>
+                                <div class="d-flex align-items-center bg-accent p-3 rounded border border-secondary">
+                                    <div class="me-4">
+                                        <img id="imagePreview" src="~/images/default-player.png"
+                                             class="rounded-circle border border-secondary shadow-sm"
+                                             style="width: 80px; height: 80px; object-fit: cover;"
+                                             alt="Preview" />
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <input asp-for="ImageFile" type="file" class="form-control bg-dark text-white border-secondary"
+                                               accept="image/*" onchange="previewFile()" />
+                                        <small class="text-muted mt-1 d-block">Recommended: Square aspect ratio (JPG, PNG)</small>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="ImageFile" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label asp-for="Name" class="form-label text-uppercase small fw-bold text-secondary">Full Name</label>
+                                <input asp-for="Name" class="form-control bg-accent text-white border-secondary" placeholder="Enter player's full name" />
+                                <span asp-validation-for="Name" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Category" class="form-label text-uppercase small fw-bold text-secondary">Playing Role</label>
+                                <select asp-for="Category" class="form-select bg-accent text-white border-secondary">
+                                    <option value="">-- Select Category --</option>
+                                    <option value="Batsman">Batsman</option>
+                                    <option value="Bowler">Bowler</option>
+                                    <option value="All-rounder">All-rounder</option>
+                                    <option value="Wicketkeeper">Wicketkeeper</option>
+                                </select>
+                                <span asp-validation-for="Category" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="BasePrice" class="form-label text-uppercase small fw-bold text-secondary">Base Price (₹)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-warning">₹</span>
+                                    <input asp-for="BasePrice" class="form-control bg-accent text-white border-secondary" placeholder="2,00,00,000" />
+                                </div>
+                                <span asp-validation-for="BasePrice" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-uppercase small fw-bold text-secondary">Draft Status</label>
+                                <div class="form-check form-switch p-3 rounded bg-accent border border-secondary d-flex align-items-center">
+                                    <input class="form-check-input ms-0 me-3" type="checkbox" asp-for="IsSold" id="isSoldSwitch">
+                                    <label class="form-check-label text-white mb-0" for="isSoldSwitch">Mark as Pre-Sold</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="TeamId" class="form-label text-uppercase small fw-bold text-secondary">Assigned Franchise</label>
+                                <select asp-for="TeamId" class="form-select bg-accent text-white border-secondary" asp-items="ViewBag.TeamId">
+                                    <option value="">-- Unassigned (Available) --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <hr class="my-5 border-secondary" />
+
+                        <div class="row align-items-center">
+                            <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                                <p class="small text-muted mb-0">Note: Files are stored locally in wwwroot/images/players.</p>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold shadow">
+                                    <i class="fa-solid fa-check-double me-2"></i> REGISTER PLAYER
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-accent {
+        background-color: #1e293b !important;
+    }
+
+    .form-control:focus, .form-select:focus {
+        background-color: #0f172a;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        color: white;
+    }
+
+    .form-check-input:checked {
+        background-color: #198754;
+        border-color: #198754;
+    }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // JS to handle real-time image preview
+        function previewFile() {
+            const preview = document.getElementById('imagePreview');
+            const file = document.querySelector('input[type=file]').files[0];
+            const reader = new FileReader();
+
+            reader.onloadend = function () {
+                preview.src = reader.result;
+            }
+
+            if (file) {
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = "~/images/default-player.png";
+            }
+        }
+    </script>
+}

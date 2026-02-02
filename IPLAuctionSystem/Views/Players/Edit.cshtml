@@ -1,0 +1,166 @@
+﻿@model IPLAuctionSystem.Models.Player
+
+@{
+    ViewData["Title"] = "Update Player Bio";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a asp-action="Index" class="text-warning text-decoration-none">Roster</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">Edit Player</li>
+                    </ol>
+                </nav>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info btn-sm">
+                    <i class="fa-solid fa-eye me-1"></i> View Profile
+                </a>
+            </div>
+
+            <div class="card bg-dark border-secondary shadow-lg overflow-hidden">
+                <div class="row g-0">
+                    <div class="col-md-4 bg-accent p-4 border-end border-secondary">
+                        <div class="text-center mt-3">
+                            <div class="mb-3 position-relative d-inline-block">
+                                @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                                {
+                                    <img id="imagePreview" src="~/images/players/@Model.ProfilePicture"
+                                         class="rounded-circle border border-warning shadow"
+                                         style="width: 120px; height: 120px; object-fit: cover;" />
+                                }
+                                else
+                                {
+                                    <img id="imagePreview" src="~/images/default-player.png"
+                                         class="rounded-circle border border-warning shadow"
+                                         style="width: 120px; height: 120px; object-fit: cover;" />
+                                }
+                                <div class="position-absolute bottom-0 end-0 bg-warning text-dark rounded-circle px-2 py-1 border border-dark shadow-sm" style="font-size: 0.8rem;">
+                                    <i class="fa-solid fa-camera"></i>
+                                </div>
+                            </div>
+                            <h4 class="text-white fw-bold">@Model.Name</h4>
+                            <span class="badge bg-secondary mb-4">ID: #PLY-@Model.Id</span>
+                        </div>
+
+                        <div class="mt-4 p-3 rounded bg-black bg-opacity-25 border border-secondary">
+                            <h6 class="text-warning small fw-bold text-uppercase">Editing Rules</h6>
+                            <ul class="list-unstyled small text-secondary mb-0">
+                                <li class="mb-2"><i class="fa-solid fa-check text-success me-2"></i> Images are auto-resized.</li>
+                                <li class="mb-2"><i class="fa-solid fa-check text-success me-2"></i> Category changes affect auction logic.</li>
+                                <li><i class="fa-solid fa-check text-success me-2"></i> Team budget will be updated.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8 p-4 p-lg-5">
+                        <form asp-action="Edit" enctype="multipart/form-data">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger bg-danger text-white border-0 small"></div>
+
+                            <input type="hidden" asp-for="Id" />
+                            <input type="hidden" asp-for="ProfilePicture" />
+
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <label class="form-label text-secondary small fw-bold">UPDATE PROFILE PHOTO</label>
+                                    <input asp-for="ImageFile" type="file" class="form-control bg-dark text-white border-secondary shadow-none"
+                                           accept="image/*" onchange="previewFile()" />
+                                    <small class="text-muted">Leave empty to keep the current photo.</small>
+                                </div>
+
+                                <div class="col-12">
+                                    <label asp-for="Name" class="form-label text-secondary small fw-bold">PLAYER NAME</label>
+                                    <input asp-for="Name" class="form-control bg-dark text-white border-secondary shadow-none" />
+                                    <span asp-validation-for="Name" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label asp-for="Category" class="form-label text-secondary small fw-bold">CATEGORY</label>
+                                    <select asp-for="Category" class="form-select bg-dark text-white border-secondary shadow-none">
+                                        <option value="Batsman">Batsman</option>
+                                        <option value="Bowler">Bowler</option>
+                                        <option value="All-rounder">All-rounder</option>
+                                        <option value="Wicketkeeper">Wicketkeeper</option>
+                                    </select>
+                                    <span asp-validation-for="Category" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label asp-for="BasePrice" class="form-label text-secondary small fw-bold">BASE PRICE (₹)</label>
+                                    <input asp-for="BasePrice" class="form-control bg-dark text-white border-secondary shadow-none" />
+                                    <span asp-validation-for="BasePrice" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label asp-for="SoldPrice" class="form-label text-secondary small fw-bold">SOLD PRICE (₹)</label>
+                                    <input asp-for="SoldPrice" class="form-control bg-dark text-white border-secondary shadow-none" />
+                                    <span asp-validation-for="SoldPrice" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label asp-for="TeamId" class="form-label text-secondary small fw-bold">ASSIGNED TEAM</label>
+                                    <select asp-for="TeamId" class="form-select bg-dark text-white border-secondary shadow-none" asp-items="ViewBag.TeamId">
+                                        <option value="">-- Unassigned --</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="form-check form-switch p-3 rounded bg-accent border border-secondary">
+                                        <input class="form-check-input ms-0 me-3" type="checkbox" asp-for="IsSold" id="isSoldSwitch">
+                                        <label class="form-check-label text-white fw-bold" for="isSoldSwitch">Finalize Auction Status (Is Sold)</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-5 d-flex gap-3">
+                                <button type="submit" class="btn btn-warning btn-lg px-5 fw-bold shadow">
+                                    <i class="fa-solid fa-floppy-disk me-2"></i>SAVE UPDATES
+                                </button>
+                                <a asp-action="Index" class="btn btn-outline-secondary btn-lg px-4">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-accent {
+        background-color: #1e293b;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #eab308;
+        background-color: #0f172a;
+        color: white;
+    }
+
+    .breadcrumb-item + .breadcrumb-item::before {
+        color: #64748b;
+    }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        function previewFile() {
+            const preview = document.getElementById('imagePreview');
+            const file = document.querySelector('input[type=file]').files[0];
+            const reader = new FileReader();
+
+            reader.onloadend = function () {
+                preview.src = reader.result;
+            }
+
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+}

@@ -1,0 +1,141 @@
+﻿@model IPLAuctionSystem.Models.Team
+
+@{
+    ViewData["Title"] = "Update Franchise";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="mb-4 d-flex align-items-center justify-content-between">
+                <div>
+                    <h2 class="text-warning fw-bold mb-0">
+                        <i class="fa-solid fa-pen-to-square me-2"></i>EDIT FRANCHISE
+                    </h2>
+                    <p class="text-secondary">Modifying details for: <span class="text-white fw-bold">@Model.Name</span></p>
+                </div>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-rotate-left me-2"></i>Discard Changes
+                </a>
+            </div>
+
+            <div class="card bg-dark border-secondary shadow-lg overflow-hidden">
+                <div class="row g-0">
+                    @* Left Sidebar - Now includes Logo Preview *@
+                    <div class="col-md-4 bg-accent p-4 border-end border-secondary">
+                        <div class="text-center mb-4">
+                            <label class="text-warning small fw-bold d-block mb-3">CURRENT LOGO</label>
+                            <div class="mx-auto rounded bg-dark d-flex align-items-center justify-content-center mb-3 border border-secondary p-3 shadow-inner"
+                                 style="width: 180px; height: 180px;">
+                                @if (!string.IsNullOrEmpty(Model.TeamLogo))
+                                {
+                                    <img id="logoPreview" src="~/images/teams/@Model.TeamLogo"
+                                         class="img-fluid" style="max-height: 100%; object-fit: contain;" />
+                                }
+                                else
+                                {
+                                    <img id="logoPreview" src="~/images/default-team.png"
+                                         class="img-fluid opacity-50" style="max-height: 100%; object-fit: contain;" />
+                                }
+                            </div>
+                            <p class="small text-secondary px-3">Upload a new image to replace the current franchise branding.</p>
+                        </div>
+
+                        <div class="small text-secondary d-none d-md-block">
+                            <hr class="border-secondary" />
+                            <p><i class="fa-solid fa-circle-info me-2 text-info"></i> Changes made here will affect the live auction database immediately.</p>
+                        </div>
+                    </div>
+
+                    @* Right Side - Form Fields *@
+                    <div class="col-md-8 p-4 p-lg-5">
+                        <form asp-action="Edit" enctype="multipart/form-data">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger bg-danger text-white border-0 small"></div>
+
+                            <input type="hidden" asp-for="Id" />
+                            @* CRITICAL: Keep the existing logo path if no new file is selected *@
+                            <input type="hidden" asp-for="TeamLogo" />
+
+                            <div class="mb-4">
+                                <label class="form-label text-warning small fw-bold text-uppercase">Update Logo File</label>
+                                <input asp-for="LogoFile" type="file" class="form-control bg-dark text-white border-secondary shadow-none"
+                                       accept="image/*" onchange="previewLogo(this)" />
+                                <span asp-validation-for="LogoFile" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Name" class="form-label text-warning small fw-bold">FRANCHISE NAME</label>
+                                <input asp-for="Name" class="form-control form-control-lg bg-dark text-white border-secondary shadow-none" />
+                                <span asp-validation-for="Name" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Owner" class="form-label text-warning small fw-bold">OWNER / GROUP</label>
+                                <input asp-for="Owner" class="form-control form-control-lg bg-dark text-white border-secondary shadow-none" />
+                                <span asp-validation-for="Owner" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Budget" class="form-label text-warning small fw-bold">TOTAL PURSE (INR)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-secondary border-secondary text-white">₹</span>
+                                    <input asp-for="Budget" class="form-control form-control-lg bg-dark text-white border-secondary shadow-none" />
+                                </div>
+                                <span asp-validation-for="Budget" class="text-danger small"></span>
+                            </div>
+
+                            <hr class="my-4 border-secondary" />
+
+                            <div class="d-flex gap-3">
+                                <button type="submit" class="btn btn-warning btn-lg px-5 fw-bold shadow">
+                                    <i class="fa-solid fa-floppy-disk me-2"></i>SAVE CHANGES
+                                </button>
+                                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-light btn-lg">
+                                    Cancel
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-accent {
+        background-color: #1e293b;
+    }
+
+    .form-control:focus {
+        border-color: #eab308;
+        background-color: #0f172a;
+        color: white;
+    }
+
+    .input-group-text {
+        border-right: none;
+    }
+
+    .shadow-inner {
+        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+    }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        function previewLogo(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('logoPreview').src = e.target.result;
+                    document.getElementById('logoPreview').classList.remove('opacity-50');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}

@@ -1,0 +1,145 @@
+﻿@model IPLAuctionSystem.Models.Player
+
+@{
+    ViewData["Title"] = "Player Profile";
+}
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-chevron-left me-2"></i>Back to Roster
+        </a>
+        <div class="btn-group shadow">
+            <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning px-4">
+                <i class="fa-solid fa-user-pen me-2"></i>Edit Profile
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        @* Left Column: Player Identity Card *@
+        <div class="col-lg-4">
+            <div class="card bg-dark border-secondary shadow-lg text-center h-100 overflow-hidden">
+                <div class="py-5 @GetCategoryBg(Model.Category) text-white">
+                    <div class="mx-auto mb-3 shadow-lg position-relative" style="width: 160px; height: 160px;">
+                        @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                        {
+                            <img src="~/images/players/@Model.ProfilePicture"
+                                 class="rounded-circle border border-4 border-white shadow w-100 h-100"
+                                 style="object-fit: cover;"
+                                 alt="@Model.Name" />
+                        }
+                        else
+                        {
+                            <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center w-100 h-100 border border-4 border-white shadow"
+                                 style="font-size: 4rem;">
+                                <i class="@GetCategoryIcon(Model.Category)"></i>
+                            </div>
+                        }
+                    </div>
+                    <h2 class="fw-bold mb-0 text-uppercase tracking-tighter">@Model.Name</h2>
+                    <span class="badge bg-white text-dark rounded-pill px-3 py-2 mt-2 fw-bold">@Model.Category</span>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <label class="text-secondary small fw-bold text-uppercase d-block mb-1">Contract Status</label>
+                        @if (Model.IsSold)
+                        {
+                            <h4 class="text-success fw-bold"><i class="fa-solid fa-circle-check me-2"></i>SIGNED</h4>
+                        }
+                        else
+                        {
+                            <h4 class="text-warning fw-bold"><i class="fa-solid fa-hourglass-half me-2"></i>IN AUCTION POOL</h4>
+                        }
+                    </div>
+
+                    <div class="p-3 rounded bg-accent border border-secondary">
+                        <label class="text-secondary small fw-bold text-uppercase d-block mb-1">Assigned Franchise</label>
+                        <h5 class="text-info mb-0">@(Model.Team?.Name ?? "Free Agent")</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Right Column: Financials and Metadata *@
+        <div class="col-lg-8">
+            <div class="card bg-dark border-secondary shadow-lg h-100">
+                <div class="card-header bg-accent border-secondary py-3">
+                    <h5 class="mb-0 text-white fw-bold"><i class="fa-solid fa-chart-line me-2 text-warning"></i>Financial Valuation</h5>
+                </div>
+                <div class="card-body p-4 p-lg-5">
+                    <div class="row g-4 mb-5">
+                        <div class="col-md-6">
+                            <div class="p-4 rounded-4 border border-secondary h-100 shadow-sm" style="background: linear-gradient(145deg, #1e293b, #0f172a);">
+                                <h6 class="text-secondary text-uppercase fw-bold mb-3">Base Price</h6>
+                                <h2 class="text-white fw-bold mb-0">₹ @(((decimal)Model.BasePrice).ToString("N0"))</h2>
+                                <p class="text-muted small mt-2 mb-0">Minimum valuation for entry</p>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="p-4 rounded-4 border @(Model.IsSold ? "border-success" : "border-secondary") h-100 shadow-sm" style="background: linear-gradient(145deg, #1e293b, #0f172a);">
+                                <h6 class="text-secondary text-uppercase fw-bold mb-3">Sold Price</h6>
+                                <h2 class="@(Model.IsSold ? "text-success" : "text-muted") fw-bold mb-0">
+                                    @(Model.IsSold ? "₹ " + ((decimal)Model.SoldPrice).ToString("N0") : "N/A")
+                                </h2>
+                                <p class="text-muted small mt-2 mb-0">Final Hammer Price</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-top border-secondary pt-4">
+                        <h6 class="text-secondary text-uppercase fw-bold mb-4">Player Metadata</h6>
+                        <div class="row text-white small">
+                            <div class="col-6 mb-3">
+                                <span class="text-muted d-block">System ID</span>
+                                <span class="font-monospace text-warning">#PLY-@(Model.Id.ToString("D4"))</span>
+                            </div>
+                            <div class="col-6 mb-3 text-end">
+                                <span class="text-muted d-block">Entry Season</span>
+                                <span>IPL 2026</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted d-block">Auction Group</span>
+                                <span class="badge bg-secondary">Set A - Marquee</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-warning py-1 border-0"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    public string GetCategoryBg(string cat) => cat?.ToLower() switch
+    {
+        "batsman" => "bg-primary",
+        "bowler" => "bg-danger",
+        "all-rounder" => "bg-info",
+        "wicketkeeper" => "bg-warning",
+        _ => "bg-secondary"
+    };
+
+    public string GetCategoryIcon(string cat) => cat?.ToLower() switch
+    {
+        "batsman" => "fa-solid fa-bat-ball",
+        "bowler" => "fa-solid fa-baseball",
+        "all-rounder" => "fa-solid fa-bolt",
+        "wicketkeeper" => "fa-solid fa-hands",
+        _ => "fa-solid fa-user"
+    };
+}
+
+<style>
+    .bg-accent {
+        background-color: #1e293b;
+    }
+
+    .tracking-tighter {
+        letter-spacing: -1px;
+    }
+</style>

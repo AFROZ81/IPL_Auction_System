@@ -1,0 +1,95 @@
+﻿@model IPLAuctionSystem.Models.Team
+
+@{
+    ViewData["Title"] = "Terminate Franchise";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+
+            <div class="text-center mb-4">
+                <div class="display-1 text-danger mb-2">
+                    <i class="fa-solid fa-triangle-exclamation animate-pulse"></i>
+                </div>
+                <h2 class="text-white fw-bold">Confirm Termination</h2>
+                <p class="text-secondary">Are you sure you want to remove this franchise from the league?</p>
+            </div>
+
+            <div class="card bg-dark border-danger shadow-lg mb-4">
+                <div class="card-header bg-danger-subtle border-danger text-center py-3">
+                    <h4 class="mb-0 text-danger fw-bold text-uppercase">Danger Zone</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3"
+                             style="width: 60px; height: 60px; font-size: 1.5rem; font-weight: bold;">
+                            @Model.Name.Substring(0, 1)
+                        </div>
+                        <div>
+                            <h3 class="text-white mb-0">@Model.Name</h3>
+                            <span class="text-muted small">ID: #FRN-@Model.Id</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-black bg-opacity-50 p-3 rounded border border-secondary mb-4">
+                        <div class="row mb-2">
+                            <div class="col-5 text-secondary small fw-bold">OWNER:</div>
+                            <div class="col-7 text-white">@Model.Owner</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-5 text-secondary small fw-bold">FINAL BUDGET:</div>
+                            <div class="col-7 text-success fw-bold">₹ @(((decimal)Model.Budget).ToString("N0"))</div>
+                        </div>
+                    </div>
+
+                    <p class="text-danger small italic text-center">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        Warning: This will also remove all player associations for this team.
+                    </p>
+                </div>
+
+                <div class="card-footer bg-transparent border-secondary p-4">
+                    <form asp-action="Delete" class="d-grid gap-2">
+                        <input type="hidden" asp-for="Id" />
+                        <button type="submit" class="btn btn-danger btn-lg fw-bold py-3 shadow">
+                            <i class="fa-solid fa-trash-can me-2"></i>PERMANENTLY DELETE
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-light">
+                            <i class="fa-solid fa-xmark me-2"></i>Cancel & Go Back
+                        </a>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Adding a subtle pulse animation to the warning icon */
+    .animate-pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.1);
+            opacity: 0.7;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .bg-danger-subtle {
+        background-color: rgba(220, 53, 69, 0.1) !important;
+    }
+</style>

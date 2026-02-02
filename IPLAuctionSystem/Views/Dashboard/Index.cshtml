@@ -1,0 +1,168 @@
+﻿@model IEnumerable<IPLAuctionSystem.Models.Team>
+
+@{
+    ViewData["Title"] = "Auction Analytics";
+}
+
+@functions {
+    // C# Helper to keep numbers clean in cards and tables
+    public string FormatCurrency(decimal amount)
+    {
+        if (amount >= 10000000) return $"₹ {(amount / 10000000).ToString("0.##")} Cr";
+        if (amount >= 100000) return $"₹ {(amount / 100000).ToString("0.##")} L";
+        return $"₹ {amount.ToString("N0")}";
+    }
+}
+
+<div class="container-fluid py-5 bg-black" style="min-height: 100vh;">
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-warning tracking-tight">
+            <i class="fa-solid fa-chart-pie me-3"></i>AUCTION INSIGHTS 2026
+        </h1>
+        <div class="badge bg-danger px-3 py-2 text-uppercase ls-1">Live Market Intelligence</div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-lg mb-4 text-white overflow-hidden"
+                 style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
+                <div class="card-body p-4 position-relative">
+                    <i class="fa-solid fa-crown position-absolute end-0 bottom-0 opacity-10 m-3 display-1"></i>
+                    <h6 class="text-warning text-uppercase fw-bold small mb-3">Highest Purchase</h6>
+                    <h2 class="fw-bold mb-1">@(ViewBag.TopPlayer?.Name ?? "No Bids Yet")</h2>
+                    <p class="fs-4 text-success fw-semibold mb-0">
+                        @FormatCurrency(ViewBag.TopPlayer?.SoldPrice ?? 0m)
+                    </p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-lg mb-4 text-white"
+                 style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-left: 5px solid #eab308 !important;">
+                <div class="card-body p-4">
+                    <h6 class="text-secondary text-uppercase fw-bold small mb-2">Total Market Value</h6>
+                    <h2 class="fw-bold mb-0 text-white">
+                        @FormatCurrency(Model.Sum(t => t.Players?.Sum(p => (decimal?)p.SoldPrice) ?? 0m))
+                    </h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card bg-dark border-secondary shadow-lg h-100">
+                <div class="card-header bg-transparent border-secondary py-3 d-flex align-items-center">
+                    <h5 class="text-white mb-0 fw-bold">
+                        <i class="fa-solid fa-building-columns me-2 text-warning"></i>Remaining Purse Analysis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="budgetChart" style="max-height: 350px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <div class="card bg-dark border-secondary shadow-lg">
+            <div class="card-header border-secondary bg-accent d-flex justify-content-between align-items-center py-3">
+                <h5 class="text-info mb-0 fw-bold"><i class="fa-solid fa-list-check me-2"></i>Franchise Squad Summary</h5>
+                <span class="badge bg-secondary">Total Teams: @Model.Count()</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0">
+                    <thead class="table-light text-dark">
+                        <tr>
+                            <th class="ps-4">FRANCHISE</th>
+                            <th>REMAINING BUDGET</th>
+                            <th>SLOTS FILLED</th>
+                            <th class="text-end pe-4">SQUAD VALUE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var team in Model)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold text-white">@team.Name</td>
+                                <td>
+                                    <span class="text-success fw-bold">@FormatCurrency((decimal)team.Budget)</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-3" style="height: 6px; min-width: 100px;">
+                                            <div class="progress-bar bg-info" style="width: @((team.Players?.Count ?? 0) * 4)%"></div>
+                                        </div>
+                                        <span>@(team.Players?.Count ?? 0) / 25</span>
+                                    </div>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <span class="badge bg-accent border border-secondary p-2">
+                                        @FormatCurrency(team.Players?.Sum(p => (decimal)p.SoldPrice) ?? 0m)
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const teamNames = @Html.Raw(Json.Serialize(Model.Select(t => t.Name)));
+        const teamBudgets = @Html.Raw(Json.Serialize(Model.Select(t => t.Budget)));
+
+        const ctx = document.getElementById('budgetChart').getContext('2d');
+
+        // Helper to format Chart Tooltips and Ticks
+        function formatValue(value) {
+            if (value >= 10000000) return (value / 10000000).toFixed(2) + ' Cr';
+            if (value >= 100000) return (value / 100000).toFixed(2) + ' L';
+            return value.toLocaleString();
+        }
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, '#eab308');
+        gradient.addColorStop(1, '#ca8a04');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: teamNames,
+                datasets: [{
+                    label: 'Remaining Purse',
+                    data: teamBudgets,
+                    backgroundColor: gradient,
+                    borderRadius: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' Purse: ₹ ' + formatValue(context.raw);
+                            }
+                        },
+                        backgroundColor: '#1e293b',
+                        titleColor: '#eab308',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return '₹ ' + formatValue(value); },
+                            color: '#94a3b8'
+                        }
+                    },
+                    x: { ticks: { color: '#f8fafc' } }
+                }
+            }
+        });
+    </script>
+}

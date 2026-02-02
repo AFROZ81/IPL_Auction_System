@@ -1,0 +1,162 @@
+﻿@model IEnumerable<IPLAuctionSystem.Models.Team>
+
+@{
+    ViewData["Title"] = "Franchise Management";
+}
+
+@functions {
+    public string FormatCurrency(decimal amount)
+    {
+        if (amount >= 10000000) return $"₹ {(amount / 10000000).ToString("0.##")} Cr";
+        if (amount >= 100000) return $"₹ {(amount / 100000).ToString("0.##")} L";
+        return $"₹ {amount.ToString("N0")}";
+    }
+}
+
+<div class="container-fluid py-4 bg-black" style="min-height: 100vh;">
+    <div class="d-flex justify-content-between align-items-center mb-4 px-3">
+        <div>
+            <h1 class="text-warning fw-bold mb-0">
+                <i class="fa-solid fa-users-gear me-2"></i>IPL FRANCHISES
+            </h1>
+            <p class="text-secondary">Manage team budgets, owners, and roster status for 2026.</p>
+        </div>
+        <a asp-action="Create" class="btn btn-warning btn-lg shadow hover-lift fw-bold">
+            <i class="fa-solid fa-plus me-2"></i>Register New Team
+        </a>
+    </div>
+
+    @* Summary Cards Section *@
+    <div class="row g-4 mb-4 px-2">
+        <div class="col-md-4">
+            <div class="card bg-dark border-secondary h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-secondary text-uppercase small fw-bold">Active Teams</h6>
+                            <h2 class="text-white mb-0">@Model.Count()</h2>
+                        </div>
+                        <i class="fa-solid fa-shield-halved text-warning opacity-25 fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark border-secondary h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-secondary text-uppercase small fw-bold">Total Purse Capital</h6>
+                            <h2 class="text-success mb-0">@FormatCurrency(Model.Sum(t => (decimal)t.Budget))</h2>
+                        </div>
+                        <i class="fa-solid fa-money-bill-trend-up text-success opacity-25 fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Main Table *@
+    <div class="card bg-dark shadow-lg border-secondary mx-2 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0">
+                    <thead class="table-light text-dark">
+                        <tr>
+                            <th class="ps-4 py-3">TEAM / BRAND</th>
+                            <th>OWNER / REPRESENTATIVE</th>
+                            <th>REMAINING BUDGET</th>
+                            <th class="text-center">MANAGEMENT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center py-2">
+                                        @* Updated Logo Container *@
+                                        <div class="me-3 position-relative">
+                                            @if (!string.IsNullOrEmpty(item.TeamLogo))
+                                            {
+                                                <div class="bg-white rounded p-1 shadow-sm d-flex align-items-center justify-content-center"
+                                                     style="width: 55px; height: 55px;">
+                                                    <img src="~/images/teams/@item.TeamLogo" class="img-fluid" style="max-height: 100%; object-fit: contain;" />
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center shadow-sm"
+                                                     style="width: 55px; height: 55px; font-weight: 800; font-size: 1.4rem;">
+                                                    @item.Name.Substring(0, 1)
+                                                </div>
+                                            }
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold fs-5 text-white d-block">@item.Name</span>
+                                            <small class="text-secondary opacity-75">ID: #@(item.Id.ToString("D3"))</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-info-emphasis">
+                                        <i class="fa-solid fa-user-tie me-2 opacity-50"></i>@item.Owner
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success-subtle text-success fs-6 px-3 py-2 border border-success">
+                                        @FormatCurrency((decimal)item.Budget)
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group shadow-sm">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-info btn-sm px-3" title="Edit Franchise">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-light btn-sm px-3" title="View Roster">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm px-3" title="Disband Team">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-black {
+        background-color: #0f172a;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #1e293b !important;
+        transition: background-color 0.2s ease;
+    }
+
+    .table thead th {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 1.2px;
+        border: none;
+    }
+
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(234, 179, 8, 0.3) !important;
+        }
+
+    .text-info-emphasis {
+        color: #7dd3fc;
+    }
+</style>

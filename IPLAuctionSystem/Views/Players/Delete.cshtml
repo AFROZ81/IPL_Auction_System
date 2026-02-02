@@ -1,0 +1,90 @@
+﻿@model IPLAuctionSystem.Models.Player
+
+@{
+    ViewData["Title"] = "Withdraw Player";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+
+            <div class="text-center mb-4">
+                <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="fa-solid fa-user-slash text-danger display-4"></i>
+                </div>
+                <h2 class="text-white fw-bold">Withdraw Player</h2>
+                <p class="text-secondary">Are you sure you want to remove this athlete from the auction pool?</p>
+            </div>
+
+            <div class="card bg-dark border-danger shadow-lg mb-4 overflow-hidden">
+                <div class="card-header bg-danger text-white py-3 text-center">
+                    <h5 class="mb-0 fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>FINAL CONFIRMATION</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <h1 class="text-white fw-bold mb-1">@Model.Name</h1>
+                        <span class="badge bg-outline-info text-info border border-info px-3">@Model.Category</span>
+                    </div>
+
+                    <div class="list-group list-group-flush border-top border-bottom border-secondary mb-4">
+                        <div class="list-group-item bg-transparent text-white d-flex justify-content-between py-3 border-secondary">
+                            <span class="text-secondary small fw-bold uppercase">Base Price:</span>
+                            <span class="fw-bold text-warning">₹ @(((decimal)Model.BasePrice).ToString("N0"))</span>
+                        </div>
+                        <div class="list-group-item bg-transparent text-white d-flex justify-content-between py-3 border-secondary">
+                            <span class="text-secondary small fw-bold uppercase">Auction Status:</span>
+                            <span>
+                                @if (Model.IsSold)
+                                {
+                                    <span class="text-success fw-bold">SOLD to @Model.Team?.Name</span>
+                                }
+                                else
+                                {
+                                    <span class="text-warning fw-bold">AVAILABLE</span>
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning border-0 small bg-warning bg-opacity-10 text-warning d-flex align-items-start">
+                        <i class="fa-solid fa-circle-exclamation me-3 mt-1 fs-5"></i>
+                        <div>
+                            <strong>Warning:</strong> Deleting this player record will permanently remove all bidding history and statistics associated with them.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-black bg-opacity-25 p-4 border-top border-secondary">
+                    <form asp-action="Delete">
+                        <input type="hidden" asp-for="Id" />
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger btn-lg fw-bold py-3 shadow">
+                                <i class="fa-solid fa-trash-can me-2"></i>REMOVE FROM LEAGUE
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="fa-solid fa-xmark me-2"></i>Cancel & Keep Player
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <p class="text-center text-secondary x-small">System Ref: #PLY-ID-@Model.Id</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-outline-info {
+        background-color: rgba(13, 202, 240, 0.1);
+    }
+
+    .uppercase {
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .x-small {
+        font-size: 0.7rem;
+    }
+</style>

@@ -1,0 +1,141 @@
+﻿@model IPLAuctionSystem.Models.Team
+
+@{
+    ViewData["Title"] = "Register Team";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index" class="text-warning text-decoration-none">Teams</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">Register New</li>
+                </ol>
+            </nav>
+
+            <div class="card bg-dark border-secondary shadow-lg">
+                <div class="card-header bg-warning text-dark text-center py-3">
+                    <h3 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved me-2"></i>TEAM REGISTRATION</h3>
+                </div>
+                <div class="card-body p-4">
+                    @* Added enctype for file upload *@
+                    <form asp-action="Create" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger bg-danger text-white border-0 small" role="alert"></div>
+
+                        <div class="mb-4 text-center">
+                            <label class="form-label text-secondary small fw-bold text-uppercase d-block text-start">Franchise Logo</label>
+                            <div class="p-3 rounded bg-accent border border-secondary mb-2">
+                                <img id="logoPreview" src="~/images/default-team.png"
+                                     class="img-fluid mb-3 shadow-sm border border-secondary bg-dark"
+                                     style="max-height: 120px; width: 120px; object-fit: contain; border-radius: 10px;" />
+                                <input asp-for="LogoFile" type="file" class="form-control bg-dark text-white border-secondary"
+                                       accept="image/*" onchange="previewLogo(this)" />
+                            </div>
+                            <span asp-validation-for="LogoFile" class="text-danger x-small"></span>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label asp-for="Name" class="form-label text-secondary small fw-bold text-uppercase">Franchise Name</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-accent border-secondary text-warning">
+                                        <i class="fa-solid fa-signature"></i>
+                                    </span>
+                                    <input asp-for="Name" class="form-control bg-dark text-white border-secondary shadow-none" placeholder="e.g. Mumbai Indians" />
+                                </div>
+                                <span asp-validation-for="Name" class="text-danger x-small"></span>
+                            </div>
+
+                            <div class="col-12">
+                                <label asp-for="Owner" class="form-label text-secondary small fw-bold text-uppercase">Owner / Corporate Group</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-accent border-secondary text-warning">
+                                        <i class="fa-solid fa-user-tie"></i>
+                                    </span>
+                                    <input asp-for="Owner" class="form-control bg-dark text-white border-secondary shadow-none" placeholder="e.g. Reliance Industries" />
+                                </div>
+                                <span asp-validation-for="Owner" class="text-danger x-small"></span>
+                            </div>
+
+                            <div class="col-12">
+                                <label asp-for="Budget" class="form-label text-secondary small fw-bold text-uppercase">Starting Purse (INR)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-accent border-secondary text-warning">
+                                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                                    </span>
+                                    <input asp-for="Budget" type="number" class="form-control bg-dark text-white border-secondary shadow-none" placeholder="1000000000" />
+                                </div>
+                                <div class="form-text text-muted small">Standard IPL purse is ₹100 Crores (1,000,000,000).</div>
+                                <span asp-validation-for="Budget" class="text-danger x-small"></span>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-warning btn-lg fw-bold shadow">
+                                <i class="fa-solid fa-cloud-arrow-up me-2"></i>SAVE FRANCHISE
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="fa-solid fa-arrow-left me-2"></i>Back to List
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <p class="text-center mt-4 text-secondary small">
+                Ensuring data integrity for the @DateTime.Now.Year Auction Season.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control:focus {
+        background-color: #1e293b;
+        border-color: #eab308;
+        color: white;
+    }
+
+    .bg-accent {
+        background-color: #1e293b;
+    }
+
+    .input-group-text {
+        border-right: none;
+    }
+
+    .form-control {
+        border-left: none;
+    }
+
+    .x-small {
+        font-size: 0.75rem;
+    }
+
+    #logoPreview {
+        transition: transform 0.3s ease;
+    }
+
+        #logoPreview:hover {
+            transform: scale(1.05);
+        }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        function previewLogo(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('logoPreview').src = e.target.result;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}
