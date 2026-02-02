@@ -4,7 +4,36 @@
     ViewData["Title"] = "Player Profile";
 }
 
+@functions {
+    // Currency Formatter Helper
+    public string FormatCurrency(decimal amount)
+    {
+        if (amount >= 10000000) return $"₹ {(amount / 10000000).ToString("0.##")} Cr";
+        if (amount >= 100000) return $"₹ {(amount / 100000).ToString("0.##")} L";
+        return $"₹ {amount.ToString("N0")}";
+    }
+
+    public string GetCategoryBg(string cat) => cat?.ToLower().Trim() switch
+    {
+        "batsman" => "bg-primary",
+        "bowler" => "bg-danger",
+        "all-rounder" => "bg-info",
+        "wicketkeeper" => "bg-warning",
+        _ => "bg-secondary"
+    };
+
+    public string GetCategoryIcon(string cat) => cat?.ToLower().Trim() switch
+    {
+        "batsman" => "fa-solid fa-bat-ball",
+        "bowler" => "fa-solid fa-baseball",
+        "all-rounder" => "fa-solid fa-bolt",
+        "wicketkeeper" => "fa-solid fa-hands",
+        _ => "fa-solid fa-user"
+    };
+}
+
 <div class="container py-5">
+    @* --- HEADER NAVIGATION --- *@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <a asp-action="Index" class="btn btn-outline-secondary">
             <i class="fa-solid fa-chevron-left me-2"></i>Back to Roster
@@ -17,7 +46,7 @@
     </div>
 
     <div class="row g-4">
-        @* Left Column: Player Identity Card *@
+        @* --- LEFT COLUMN: PLAYER IDENTITY CARD --- *@
         <div class="col-lg-4">
             <div class="card bg-dark border-secondary shadow-lg text-center h-100 overflow-hidden">
                 <div class="py-5 @GetCategoryBg(Model.Category) text-white">
@@ -62,27 +91,31 @@
             </div>
         </div>
 
-        @* Right Column: Financials and Metadata *@
+        @* --- RIGHT COLUMN: FINANCIALS AND METADATA --- *@
         <div class="col-lg-8">
             <div class="card bg-dark border-secondary shadow-lg h-100">
                 <div class="card-header bg-accent border-secondary py-3">
-                    <h5 class="mb-0 text-white fw-bold"><i class="fa-solid fa-chart-line me-2 text-warning"></i>Financial Valuation</h5>
+                    <h5 class="mb-0 text-white fw-bold">
+                        <i class="fa-solid fa-chart-line me-2 text-warning"></i>Financial Valuation
+                    </h5>
                 </div>
                 <div class="card-body p-4 p-lg-5">
                     <div class="row g-4 mb-5">
+                        @* Base Price Card *@
                         <div class="col-md-6">
                             <div class="p-4 rounded-4 border border-secondary h-100 shadow-sm" style="background: linear-gradient(145deg, #1e293b, #0f172a);">
                                 <h6 class="text-secondary text-uppercase fw-bold mb-3">Base Price</h6>
-                                <h2 class="text-white fw-bold mb-0">₹ @(((decimal)Model.BasePrice).ToString("N0"))</h2>
+                                <h2 class="text-white fw-bold mb-0">@FormatCurrency((decimal)Model.BasePrice)</h2>
                                 <p class="text-muted small mt-2 mb-0">Minimum valuation for entry</p>
                             </div>
                         </div>
 
+                        @* Sold Price Card *@
                         <div class="col-md-6">
                             <div class="p-4 rounded-4 border @(Model.IsSold ? "border-success" : "border-secondary") h-100 shadow-sm" style="background: linear-gradient(145deg, #1e293b, #0f172a);">
                                 <h6 class="text-secondary text-uppercase fw-bold mb-3">Sold Price</h6>
                                 <h2 class="@(Model.IsSold ? "text-success" : "text-muted") fw-bold mb-0">
-                                    @(Model.IsSold ? "₹ " + ((decimal)Model.SoldPrice).ToString("N0") : "N/A")
+                                    @(Model.IsSold? FormatCurrency((decimal) Model.SoldPrice) : "N/A")
                                 </h2>
                                 <p class="text-muted small mt-2 mb-0">Final Hammer Price</p>
                             </div>
@@ -114,26 +147,6 @@
     </div>
 </div>
 
-@functions {
-    public string GetCategoryBg(string cat) => cat?.ToLower() switch
-    {
-        "batsman" => "bg-primary",
-        "bowler" => "bg-danger",
-        "all-rounder" => "bg-info",
-        "wicketkeeper" => "bg-warning",
-        _ => "bg-secondary"
-    };
-
-    public string GetCategoryIcon(string cat) => cat?.ToLower() switch
-    {
-        "batsman" => "fa-solid fa-bat-ball",
-        "bowler" => "fa-solid fa-baseball",
-        "all-rounder" => "fa-solid fa-bolt",
-        "wicketkeeper" => "fa-solid fa-hands",
-        _ => "fa-solid fa-user"
-    };
-}
-
 <style>
     .bg-accent {
         background-color: #1e293b;
@@ -141,5 +154,10 @@
 
     .tracking-tighter {
         letter-spacing: -1px;
+    }
+
+    body {
+        background-color: #0f172a;
+        color: #f8fafc;
     }
 </style>

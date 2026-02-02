@@ -18,15 +18,15 @@ namespace IPLAuctionSystem.Controllers
 
         public async Task<IActionResult> Index()
         {
-            // Now '_context' will work!
-            var recentSignings = await _context.Players
+            // 1. Fetch the players for the main feed/top picks
+            var players = await _context.Players
                 .Include(p => p.Team)
-                .Where(p => p.TeamId != null)
-                .OrderByDescending(p => p.Id)
-                .Take(5)
                 .ToListAsync();
 
-            return View(recentSignings);
+            // 2. Fetch the teams for the Purse Tracker (This is what was missing!)
+            ViewBag.Teams = await _context.Teams.ToListAsync();
+
+            return View(players);
         }
 
         // ... Keep your other Privacy or Error actions below ...

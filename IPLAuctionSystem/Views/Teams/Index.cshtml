@@ -109,16 +109,22 @@
                                     </span>
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group shadow-sm">
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-info btn-sm px-3" title="Edit Franchise">
-                                            <i class="fa-solid fa-pen-to-square"></i>
-                                        </a>
-                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-light btn-sm px-3" title="View Roster">
-                                            <i class="fa-solid fa-eye"></i>
-                                        </a>
-                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm px-3" title="Disband Team">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </a>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        @* Secondary Actions: Grouped Utility for Franchises *@
+                                        <div class="action-utility-group shadow-sm">
+                                            <a asp-action="Details" asp-route-id="@item.Id"
+                                               class="btn-util util-details" title="View Roster">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@item.Id"
+                                               class="btn-util util-edit" title="Edit Franchise">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </a>
+                                            <a asp-action="Delete" asp-route-id="@item.Id"
+                                               class="btn-util util-delete" title="Disband Team">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </a>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -158,5 +164,47 @@
 
     .text-info-emphasis {
         color: #7dd3fc;
+    }
+
+    /* --- Global Utility Group Styling --- */
+    .action-utility-group {
+        display: flex;
+        background: rgba(30, 41, 59, 0.7); /* Deep Slate Glass */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px; /* Slightly softer corners */
+        padding: 2px;
+    }
+
+    .btn-util {
+        color: #94a3b8; /* Muted Slate */
+        padding: 7px 12px;
+        font-size: 0.95rem;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+
+    /* Specific Hover Logic for Franchises */
+    .util-details:hover {
+        color: #f8fafc !important;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .util-edit:hover {
+        color: #38bdf8 !important; /* Sky Blue */
+        background: rgba(56, 189, 248, 0.1);
+    }
+
+    .util-delete:hover {
+        color: #fb7185 !important; /* Rose Red */
+        background: rgba(251, 113, 133, 0.1);
+    }
+
+    /* Separation borders between buttons */
+    .btn-util:not(:last-child) {
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
 </style>

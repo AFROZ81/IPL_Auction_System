@@ -44,8 +44,26 @@
                         <h4 class="mb-0 fw-extrabold text-uppercase">Now on the Block</h4>
                     </div>
                     <div class="card-body p-5 text-center">
-                        <div class="mx-auto mb-4 bg-secondary rounded-circle d-flex align-items-center justify-content-center border border-warning shadow" style="width: 140px; height: 140px;">
-                            <i class="fa-solid fa-user-tie display-1 text-dark"></i>
+                        @* Updated Player Image Section *@
+                        <div class="mx-auto mb-4 position-relative" style="width: 160px; height: 160px;">
+                            @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                            {
+                                <img src="~/images/players/@Model.ProfilePicture"
+                                     asp-append-version="true"
+                                     class="rounded-circle border border-warning border-4 shadow-lg w-100 h-100"
+                                     style="object-fit: cover;"
+                                     alt="@Model.Name" />
+                            }
+                            else
+                            {
+                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center border border-warning border-4 shadow-lg w-100 h-100">
+                                    <i class="fa-solid fa-user-tie display-1 text-dark opacity-50"></i>
+                                </div>
+                            }
+                            @* Glowing "LIVE" Indicator on the photo *@
+                            <span class="position-absolute bottom-0 start-50 translate-middle-x badge rounded-pill bg-danger border border-white px-3 shadow" style="font-size: 0.7rem; margin-bottom: -10px;">
+                                IN RING
+                            </span>
                         </div>
                         <h1 class="display-4 fw-bold text-white mb-2 text-uppercase">@Model.Name</h1>
                         <span class="badge bg-info fs-6 px-4 py-2 rounded-pill mb-4 text-uppercase">@Model.Category</span>

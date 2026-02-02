@@ -2,10 +2,11 @@
 
 @{
     ViewData["Title"] = "Auction Analytics Dashboard";
+    var topBuys = Model?.Where(p => p.IsSold).OrderByDescending(p => p.SoldPrice).Take(3).ToList() ?? new List<IPLAuctionSystem.Models.Player>();
+    var teams = ViewBag.Teams as IEnumerable<IPLAuctionSystem.Models.Team>;
 }
 
 @functions {
-    // Helper to format currency into Cr/L format
     public string FormatCurrency(decimal amount)
     {
         if (amount == 0) return "—";
@@ -13,118 +14,224 @@
         if (amount >= 100000) return $"₹ {(amount / 100000).ToString("0.##")} L";
         return $"₹ {amount.ToString("N0")}";
     }
+
+    public double GetSpentPercentage(decimal total, decimal remaining)
+    {
+        if (total <= 0) return 0;
+        var spent = total - remaining;
+        return Math.Min(100, (double)((spent / total) * 100));
+    }
 }
 
-<div class="row mt-5">
-    <div class="col-12">
-        <div class="card bg-glass border-secondary shadow-lg">
-            <div class="card-header bg-transparent border-secondary py-3 d-flex justify-content-between align-items-center">
-                <h5 class="text-white mb-0 fw-bold">
-                    <i class="fa-solid fa-clock-rotate-left me-2 text-warning"></i>RECENT AUCTION ACTIVITY
-                </h5>
-                <span class="badge rounded-pill bg-danger animate-pulse">LIVE FEED</span>
+<div class="container-fluid pb-5">
+    @* --- SEARCH & FILTER BAR --- *@
+    <div class="row mb-4 pt-3">
+        <div class="col-md-6 offset-md-3">
+            <div class="input-group shadow-lg">
+                <span class="input-group-text bg-dark border-secondary text-warning">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="dashboardSearch" class="form-control bg-dark text-white border-secondary py-2"
+                       placeholder="Search players or franchises..." onkeyup="filterDashboard()">
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-dark table-borderless align-middle mb-0">
-                        <thead class="text-secondary small text-uppercase">
-                            <tr>
-                                <th class="ps-4">Player Info</th>
-                                <th>Assigned Franchise</th>
-                                <th>Winning Bid</th>
-                                <th class="text-end pe-4">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (Model != null && Model.Any())
-                            {
-                                @foreach (var player in Model)
-                                {
-                                    <tr class="border-top border-secondary-subtle">
-                                        <td class="ps-4">
-                                            <div class="d-flex align-items-center py-2">
-                                                @* Updated to use ProfilePicture from ~/images/players/ *@
-                                                <div class="me-3">
-                                                    @if (!string.IsNullOrEmpty(player.ProfilePicture))
-                                                    {
-                                                        <img src="~/images/players/@player.ProfilePicture"
-                                                             asp-append-version="true"
-                                                             class="rounded-circle border border-warning shadow-sm"
-                                                             style="width: 45px; height: 45px; object-fit: cover;"
-                                                             alt="@player.Name" />
-                                                    }
-                                                    else
-                                                    {
-                                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center border border-dark shadow-sm"
-                                                             style="width: 45px; height: 45px;">
-                                                            <i class="fa-solid fa-user text-white-50"></i>
-                                                        </div>
-                                                    }
-                                                </div>
+        </div>
+    </div>
 
-                                                <div>
-                                                    <span class="text-white fw-bold d-block">@player.Name</span>
-                                                    <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">ID: #PLY-@player.Id</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            @if (player.Team != null)
-                                            {
-                                                <span class="text-info fw-semibold">
-                                                    <i class="fa-solid fa-shield-halved me-2"></i>@player.Team.Name
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-secondary opacity-50 small italic">Unassigned</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            <span class="@(player.SoldPrice > 0 ? "text-success" : "text-secondary") fw-extrabold fs-5">
-                                                @FormatCurrency(player.SoldPrice)
-                                            </span>
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            @if (player.SoldPrice > 0)
-                                            {
-                                                <span class="badge bg-success-subtle text-success border border-success px-3">SOLD</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-danger-subtle text-danger border border-danger px-3">UNSOLD</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="4" class="text-center py-5 text-secondary">
-                                        <i class="fa-solid fa-gavel fs-1 mb-3 d-block opacity-25"></i>
-                                        No recent auction activity recorded yet.
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+    @* --- 1. TOP AUCTION PICKS --- *@
+    @if (topBuys.Any())
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <h6 class="text-secondary text-uppercase fw-bold mb-3 ls-1">
+                    <i class="fa-solid fa-crown text-warning me-2"></i>Top Auction Picks
+                </h6>
             </div>
-            <div class="card-footer bg-transparent border-secondary text-center">
-                <a asp-controller="Players" asp-action="Index" class="text-warning text-decoration-none small fw-bold">
-                    VIEW FULL TRANSACTION HISTORY <i class="fa-solid fa-chevron-right ms-1"></i>
-                </a>
+            @foreach (var top in topBuys)
+            {
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-glass border-secondary shadow-sm hover-lift h-100">
+                        <div class="d-flex align-items-center p-3">
+                            <div class="flex-shrink-0">
+                                @if (!string.IsNullOrEmpty(top.ProfilePicture))
+                                {
+                                    <img src="~/images/players/@top.ProfilePicture"
+                                         class="rounded border border-warning shadow-sm"
+                                         style="width: 70px; height: 70px; object-fit: cover;" alt="@top.Name" />
+                                }
+                                else
+                                {
+                                    <div class="rounded border border-secondary shadow-sm bg-accent d-flex align-items-center justify-content-center"
+                                         style="width: 70px; height: 70px;">
+                                        <i class="fa-solid fa-user-tie text-secondary fs-2"></i>
+                                    </div>
+                                }
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="text-white fw-bold mb-0">@top.Name</h6>
+                                <small class="text-info d-block mb-1">@top.Team?.Name</small>
+                                <span class="badge bg-success-subtle text-success border border-success">
+                                    @FormatCurrency(top.SoldPrice)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @* --- 2. TEAM PURSE TRACKER --- *@
+    @if (teams != null && teams.Any())
+    {
+        <div class="row mb-5">
+            <div class="col-12">
+                <h6 class="text-secondary text-uppercase fw-bold mb-3 ls-1">
+                    <i class="fa-solid fa-wallet text-info me-2"></i>Franchise Purse Tracker
+                </h6>
+            </div>
+            @foreach (var team in teams)
+            {
+                @* Assuming a standard 100 Cr budget for percentage calculation *@
+                var spentPercent = GetSpentPercentage(1000000000, (decimal)team.Budget);
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-dark border-secondary p-3 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-white fw-bold small">@team.Name</span>
+                            <span class="text-warning fw-bold small">@FormatCurrency((decimal)team.Budget)</span>
+                        </div>
+                        <div class="progress bg-secondary" style="height: 6px;">
+                            <div class="progress-bar @(spentPercent > 80 ? "bg-danger" : spentPercent > 50 ? "bg-warning" : "bg-success")"
+                                 role="progressbar" style="width: @spentPercent%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-secondary" style="font-size: 0.6rem;">REMAINING PURSE</small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @* --- 3. RECENT ACTIVITY TABLE --- *@
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-glass border-secondary shadow-lg">
+                <div class="card-header bg-transparent border-secondary py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="text-white mb-0 fw-bold">
+                        <i class="fa-solid fa-clock-rotate-left me-2 text-warning"></i>RECENT AUCTION ACTIVITY
+                    </h5>
+                    <span class="badge rounded-pill bg-danger animate-pulse">LIVE FEED</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-borderless align-middle mb-0" id="activityTable">
+                            <thead class="text-secondary small text-uppercase">
+                                <tr>
+                                    <th class="ps-4">Player Info</th>
+                                    <th>Assigned Franchise</th>
+                                    <th>Winning Bid</th>
+                                    <th class="text-end pe-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model != null && Model.Any())
+                                {
+                                    @foreach (var player in Model)
+                                    {
+                                        <tr class="border-top border-secondary-subtle player-row">
+                                            <td class="ps-4">
+                                                <div class="d-flex align-items-center py-2">
+                                                    <div class="me-3">
+                                                        @if (!string.IsNullOrEmpty(player.ProfilePicture))
+                                                        {
+                                                            <img src="~/images/players/@player.ProfilePicture"
+                                                                 asp-append-version="true"
+                                                                 class="rounded-circle border border-warning shadow-sm"
+                                                                 style="width: 45px; height: 45px; object-fit: cover;" alt="@player.Name" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm border border-secondary"
+                                                                 style="width: 45px; height: 45px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                                                                <i class="fa-solid fa-user text-secondary" style="font-size: 1.1rem;"></i>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    <div>
+                                                        <span class="text-white fw-bold d-block player-name">@player.Name</span>
+                                                        <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">ID: #PLY-@player.Id</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="text-info fw-semibold team-name">
+                                                    <i class="fa-solid fa-shield-halved me-2"></i>@(player.Team?.Name ?? "Unassigned")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="@(player.SoldPrice > 0 ? "text-success" : "text-secondary") fw-extrabold fs-5">
+                                                    @FormatCurrency(player.SoldPrice)
+                                                </span>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                @if (player.SoldPrice > 0)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success px-3">SOLD</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger px-3">UNSOLD</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function filterDashboard() {
+            let input = document.getElementById('dashboardSearch').value.toLowerCase();
+            let rows = document.querySelectorAll('.player-row');
+
+            rows.forEach(row => {
+                let playerName = row.querySelector('.player-name').innerText.toLowerCase();
+                let teamName = row.querySelector('.team-name').innerText.toLowerCase();
+
+                if (playerName.includes(input) || teamName.includes(input)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+    </script>
+}
 
 <style>
     .bg-glass {
         background: rgba(15, 23, 42, 0.8);
         backdrop-filter: blur(10px);
     }
+
+    .ls-1 {
+        letter-spacing: 1px;
+    }
+
+    .hover-lift {
+        transition: transform 0.2s ease;
+    }
+
+        .hover-lift:hover {
+            transform: translateY(-5px);
+        }
 
     .fw-extrabold {
         font-weight: 800;
@@ -153,9 +260,5 @@
 
     .table-dark {
         background-color: transparent !important;
-    }
-
-    .italic {
-        font-style: italic;
     }
 </style>
