@@ -14,7 +14,7 @@
 }
 
 <div class="container-fluid py-4 bg-black" style="min-height: 100vh;">
-    @* Status Bar *@
+    @* --- STATUS BAR --- *@
     <div class="d-flex justify-content-between align-items-center mb-4 px-3 py-2 bg-dark rounded-3 border border-secondary">
         <div class="d-flex align-items-center">
             <div class="spinner-grow text-danger spinner-grow-sm me-2" role="status"></div>
@@ -37,14 +37,13 @@
     else
     {
         <div class="row g-4">
-            @* Left Column: Player Info *@
+            @* --- LEFT COLUMN: PLAYER & TIMER --- *@
             <div class="col-lg-5">
                 <div class="card bg-dark border-warning border-2 shadow-lg h-100">
                     <div class="card-header bg-warning text-dark text-center py-3">
                         <h4 class="mb-0 fw-extrabold text-uppercase">Now on the Block</h4>
                     </div>
                     <div class="card-body p-5 text-center">
-                        @* Updated Player Image Section *@
                         <div class="mx-auto mb-4 position-relative" style="width: 160px; height: 160px;">
                             @if (!string.IsNullOrEmpty(Model.ProfilePicture))
                             {
@@ -60,7 +59,6 @@
                                     <i class="fa-solid fa-user-tie display-1 text-dark opacity-50"></i>
                                 </div>
                             }
-                            @* Glowing "LIVE" Indicator on the photo *@
                             <span class="position-absolute bottom-0 start-50 translate-middle-x badge rounded-pill bg-danger border border-white px-3 shadow" style="font-size: 0.7rem; margin-bottom: -10px;">
                                 IN RING
                             </span>
@@ -83,14 +81,24 @@
                             </div>
                         </div>
                     </div>
+
+                    @* --- AUCTIONEER TIMER SECTION --- *@
                     <div class="card-footer bg-accent border-top border-secondary py-4 px-4 text-center">
-                        <h6 class="text-secondary text-uppercase small mb-3">Winning Franchise</h6>
-                        <div id="currentWinningTeam" class="h4 text-info fw-bold mb-0 italic">Waiting for First Bid...</div>
+                        <h6 class="text-secondary text-uppercase small mb-2">Winning Franchise</h6>
+                        <div id="currentWinningTeam" class="h4 text-info fw-bold mb-3 italic">Waiting for First Bid...</div>
+
+                        <div class="auction-status-box p-3 bg-black rounded border border-secondary mt-2">
+                            <div id="auctionPulse" class="h3 fw-extrabold text-white mb-2">READY TO BID</div>
+                            <div class="progress mb-2" style="height: 12px; background: #111;">
+                                <div id="timerBar" class="progress-bar bg-info" style="width: 100%"></div>
+                            </div>
+                            <div id="timerDisplay" class="h2 fw-bold text-warning mb-0">10.0s</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            @* Right Column: Bidding Controls *@
+            @* --- RIGHT COLUMN: CONTROLS & HISTORY --- *@
             <div class="col-lg-7">
                 <div class="card bg-dark border-secondary shadow-lg mb-4">
                     <div class="card-body p-4">
@@ -113,7 +121,6 @@
                     </div>
                 </div>
 
-                @* History Feed *@
                 <div class="card bg-dark border-secondary shadow-lg" style="height: 300px;">
                     <div class="card-header bg-accent border-secondary py-3">
                         <span class="text-white fw-bold">Live Bidding History</span>
@@ -125,7 +132,6 @@
                     </div>
                 </div>
 
-                @* Final Actions *@
                 <div class="mt-4 d-flex justify-content-end gap-3">
                     <form asp-action="MarkUnsold" method="post">
                         <input type="hidden" name="playerId" value="@Model.Id" />
@@ -136,7 +142,7 @@
                         <input type="hidden" name="playerId" value="@Model.Id" />
                         <input type="hidden" name="finalPrice" id="finalPriceHidden" value="@Model.BasePrice" />
                         <input type="hidden" name="teamId" id="winningTeamIdHidden" value="" />
-                        <button type="submit" class="btn btn-outline-danger btn-lg px-5 border-2 fw-bold">
+                        <button type="submit" id="soldButton" class="btn btn-outline-danger btn-lg px-5 border-2 fw-bold">
                             <i class="fa-solid fa-hammer me-2"></i>SOLD
                         </button>
                     </form>
@@ -170,6 +176,22 @@
         background: linear-gradient(90deg, #1e293b 0%, transparent 100%);
     }
 
+    .animate-pulse {
+        animation: status-pulse 0.6s infinite alternate;
+    }
+
+    @@keyframes status-pulse {
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        to {
+            opacity: 0.7;
+            transform: scale(1.02);
+        }
+    }
+
     @@keyframes slideInRight {
         from {
             transform: translateX(20px);
@@ -186,11 +208,66 @@
 @section Scripts {
     <script>
         let currentHighestBid = @(Model?.BasePrice ?? 0);
+        let timerValue = 10.0;
+        let auctionInterval = null;
+
+        const pulseEl = document.getElementById("auctionPulse");
+        const timerText = document.getElementById("timerDisplay");
+        const timerBar = document.getElementById("timerBar");
 
         function formatJSPrice(amount) {
             if (amount >= 10000000) return "₹ " + (amount / 10000000).toFixed(2) + " Cr";
             if (amount >= 100000) return "₹ " + (amount / 100000).toFixed(2) + " L";
             return "₹ " + amount.toLocaleString();
+        }
+
+        function startAuctionTimer() {
+            clearInterval(auctionInterval);
+            timerValue = 10.0;
+
+            auctionInterval = setInterval(() => {
+                timerValue = (parseFloat(timerValue) - 0.1).toFixed(1);
+                updateTimerUI();
+
+                if (timerValue <= 0) {
+                    clearInterval(auctionInterval);
+                    autoHammerDown();
+                }
+            }, 100);
+        }
+
+        function updateTimerUI() {
+            timerText.innerText = timerValue + "s";
+            timerBar.style.width = (timerValue * 10) + "%";
+
+            if (timerValue > 6) {
+                pulseEl.innerText = "BIDDING OPEN";
+                pulseEl.className = "h3 fw-extrabold text-info";
+                timerBar.className = "progress-bar bg-info";
+            }
+            else if (timerValue <= 6 && timerValue > 4) {
+                pulseEl.innerText = "GOING ONCE...";
+                pulseEl.className = "h3 fw-extrabold text-warning";
+                timerBar.className = "progress-bar bg-warning";
+            }
+            else if (timerValue <= 4 && timerValue > 0) {
+                pulseEl.innerText = "GOING TWICE...";
+                pulseEl.className = "h3 fw-extrabold text-danger animate-pulse";
+                timerBar.className = "progress-bar bg-danger";
+            }
+            else {
+                pulseEl.innerText = "SOLD! SOLD! SOLD!";
+                pulseEl.className = "h3 fw-extrabold text-white";
+            }
+        }
+
+        function autoHammerDown() {
+            const winner = document.getElementById("winningTeamIdHidden").value;
+            if (winner) {
+                document.getElementById("finalSaleForm").submit();
+            } else {
+                pulseEl.innerText = "NO BIDS - UNSOLD";
+            }
         }
 
         document.getElementById("placeBidBtn").addEventListener("click", function () {
@@ -200,11 +277,11 @@
             const bidAmount = parseInt(document.getElementById("bidAmountInput").value);
 
             if (!teamId || isNaN(bidAmount)) {
-                alert("Select a team and amount!");
+                alert("Please select a franchise and enter a valid bid!");
                 return;
             }
 
-            // Update Logic
+            // Update Bid Data
             currentHighestBid = bidAmount;
             document.getElementById("finalPriceHidden").value = bidAmount;
             document.getElementById("winningTeamIdHidden").value = teamId;
@@ -213,6 +290,7 @@
             document.getElementById("currentBidDisplay").innerText = formatJSPrice(bidAmount);
             document.getElementById("currentWinningTeam").innerText = teamName;
 
+            // History List
             const historyList = document.getElementById("bidHistoryList");
             const emptyMsg = document.getElementById("emptyFeedMessage");
             if (emptyMsg) emptyMsg.remove();
@@ -222,14 +300,17 @@
             newEntry.innerHTML = `<div><span class="text-info fw-bold">${teamName}</span></div><h5 class="text-warning mb-0 fw-bold">${formatJSPrice(bidAmount)}</h5>`;
             historyList.prepend(newEntry);
 
+            // Set next bid suggestion
             document.getElementById("bidAmountInput").value = bidAmount + 500000;
+
+            // RESET TIMER
+            startAuctionTimer();
         });
 
-        // Validation: Block "SOLD" if no one has bid
         document.getElementById("finalSaleForm").addEventListener("submit", function (e) {
             if (!document.getElementById("winningTeamIdHidden").value) {
                 e.preventDefault();
-                alert("No bids placed! Use 'UNSOLD' instead.");
+                alert("No active bid! Mark as 'UNSOLD' instead.");
             }
         });
     </script>
