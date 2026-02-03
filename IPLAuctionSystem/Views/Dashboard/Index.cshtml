@@ -2,6 +2,19 @@
 
 @{
     ViewData["Title"] = "Auction Intelligence 2026";
+
+    // 1. Calculate the actual current purse remaining across all teams
+    var totalRemainingBudget = Model.Sum(t => (decimal)t.Budget);
+
+    // 2. Calculate the original total capacity (Total Spent + Total Remaining)
+    var totalSpent = Model.Sum(t => t.Players?.Sum(p => (decimal?)p.SoldPrice) ?? 0m);
+    var totalLeagueCapacity = totalSpent + totalRemainingBudget;
+
+    // 3. Liquidity is (What's left / Total Capacity)
+    // We use a ternary check to prevent division by zero
+    var liquidityPercent = totalLeagueCapacity > 0
+        ? (totalRemainingBudget / totalLeagueCapacity) * 100
+        : 100;
 }
 
 @functions {
@@ -11,141 +24,126 @@
         if (amount >= 100000) return $"₹ {(amount / 100000).ToString("0.##")} L";
         return $"₹ {amount.ToString("N0")}";
     }
+
+    public string GetShortName(string fullName)
+    {
+        if (string.IsNullOrEmpty(fullName)) return "";
+        var parts = fullName.Split(' ');
+        if (parts.Length == 1) return fullName.Substring(0, Math.Min(3, fullName.Length)).ToUpper();
+        return string.Join("", parts.Select(p => p[0])).ToUpper();
+    }
 }
 
-<div class="analytics-wrapper py-5">
-    @* --- HEADER: Market Status --- *@
-    <div class="container-fluid mb-5">
-        <div class="d-flex justify-content-between align-items-end border-bottom border-secondary pb-4">
-            <div>
-                <span class="badge bg-danger mb-2 animate-pulse ls-1">● LIVE MARKET DATA</span>
-                <h1 class="display-5 fw-900 text-white tracking-tighter mb-0">
-                    AUCTION <span class="text-warning">INTELLIGENCE</span> <span class="fw-light text-secondary">2026</span>
-                </h1>
+<div class="analytics-wrapper py-4 bg-dark-custom">
+    @* --- DYNAMIC TOP METRICS --- *@
+    <div class="container-fluid mb-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="stat-card border-yellow">
+                    <span class="label">TOP ACQUISITION</span>
+                    <h2 class="value text-white">@(ViewBag.TopPlayer?.Name?.ToUpper() ?? "MARKET OPEN")</h2>
+                    <span class="sub-value text-success">@FormatCurrency(ViewBag.TopPlayer?.SoldPrice ?? 0m)</span>
+                </div>
             </div>
-            <div class="text-end d-none d-md-block">
-                <p class="text-secondary small mb-0 text-uppercase fw-bold">Market Liquidity</p>
-                <h3 class="text-white mb-0 fw-black">94.2%</h3>
+            <div class="col-md-4">
+                <div class="stat-card border-green">
+                    <span class="label">TOTAL CAPITAL DEPLOYED</span>
+                    <h2 class="value text-white">@FormatCurrency(totalSpent)</h2>
+                    <div class="progress mt-2" style="height: 4px; background: #222;">
+                        <div class="progress-bar bg-success" style="width: @((totalSpent / totalLeagueCapacity) * 100)%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card border-info">
+                    <span class="label">LEAGUE LIQUIDITY</span>
+                    @* Added ToString("0.#") to keep it clean (e.g., 85.5%) *@
+                    <h2 class="value text-white">@liquidityPercent.ToString("0.#")%</h2>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="container-fluid">
         <div class="row g-4">
-            @* --- LEFT COLUMN: Key Performance Indicators --- *@
+            @* --- LEFT: SPENDING POWER --- *@
             <div class="col-xl-3 col-lg-4">
-                <div class="glass-card mb-4 overflow-hidden border-top-warning">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-start mb-4">
-                            <div class="icon-shape bg-warning-soft text-warning">
-                                <i class="fa-solid fa-crown"></i>
-                            </div>
-                            <span class="text-secondary tiny fw-bold ls-1">RECORD BUY</span>
-                        </div>
-                        <h6 class="text-secondary text-uppercase small ls-1">Top Acquisition</h6>
-                        <h2 class="text-white fw-bold ls-tight">@(ViewBag.TopPlayer?.Name ?? "Market Open")</h2>
-                        <div class="text-success fs-4 fw-black mt-2">
-                            @FormatCurrency(ViewBag.TopPlayer?.SoldPrice ?? 0m)
-                        </div>
+                <div class="glass-card h-100">
+                    <div class="card-header-custom">
+                        <i class="fa-solid fa-wallet text-warning me-2"></i> HIGHEST PURSE REMAINING
                     </div>
-                </div>
-
-                <div class="glass-card mb-4">
-                    <div class="card-body p-4">
-                        <h6 class="text-secondary text-uppercase small mb-3 ls-1">Capital Deployed</h6>
-                        <h2 class="text-white fw-bold mb-3">
-                            @FormatCurrency(Model.Sum(t => t.Players?.Sum(p => (decimal?)p.SoldPrice) ?? 0m))
-                        </h2>
-                        <div class="progress bg-dark-soft" style="height: 6px;">
-                            <div class="progress-bar bg-warning shadow-warning" style="width: 72%"></div>
-                        </div>
-                        <p class="text-secondary tiny mt-2 mb-0">Aggregate Purse Exhaustion: 72%</p>
-                    </div>
-                </div>
-
-                <div class="glass-card">
-                    <div class="card-header bg-transparent border-secondary py-3">
-                        <h6 class="text-white mb-0 small fw-bold text-uppercase ls-1">Aggressive Bidders</h6>
-                    </div>
-                    <ul class="list-group list-group-flush bg-transparent">
-                        @foreach (var team in Model.OrderByDescending(t => t.Players?.Sum(p => p.SoldPrice)).Take(3))
+                    <div class="bidder-list">
+                        @foreach (var team in Model.OrderByDescending(t => t.Budget).Take(5))
                         {
-                            <li class="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center py-3">
-                                <span class="text-secondary small fw-semibold">@team.Name.ToUpper()</span>
-                                <span class="text-white fw-bold small">@FormatCurrency(team.Players?.Sum(p => (decimal)p.SoldPrice) ?? 0m)</span>
-                            </li>
+                            <div class="bidder-item">
+                                <div class="name">@team.Name.ToUpper()</div>
+                                <div class="price text-warning">@FormatCurrency((decimal)team.Budget)</div>
+                            </div>
                         }
-                    </ul>
+                    </div>
                 </div>
             </div>
 
-            @* --- RIGHT COLUMN: Visualizations & Detailed Metrics --- *@
-            <div class="col-xl-9 col-lg-8">
-                <div class="row g-4 mb-4">
-                    <div class="col-lg-8">
-                        <div class="glass-card p-4 h-100">
-                            <h6 class="text-white text-uppercase small mb-4 fw-bold ls-1">Purse Health Analysis</h6>
-                            <div style="height: 320px;">
-                                <canvas id="budgetChart"></canvas>
-                            </div>
-                        </div>
+            @* --- CENTER: PURSE HEALTH CHART --- *@
+            <div class="col-xl-6 col-lg-8">
+                <div class="glass-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="text-white fw-bold mb-0">REMAINING BUDGET BY FRANCHISE</h6>
+                        <span class="badge bg-dark text-warning border border-warning tiny">LIVE DATA</span>
                     </div>
-                    <div class="col-lg-4">
-                        <div class="glass-card p-4 h-100 d-flex flex-column justify-content-center">
-                            <h6 class="text-white text-uppercase small mb-4 fw-bold ls-1 text-center">Market Share</h6>
-                            <div style="height: 220px;">
-                                <canvas id="shareChart"></canvas>
-                            </div>
-                        </div>
+                    <div style="height: 300px;">
+                        <canvas id="budgetChart"></canvas>
                     </div>
                 </div>
+            </div>
 
-                <div class="glass-card border-0">
-                    <div class="card-header bg-transparent border-secondary py-4 px-4">
-                        <h5 class="text-white mb-0 fw-bold ls-tight">Franchise Financial Statements</h5>
+            @* --- RIGHT: MARKET SHARE --- *@
+            <div class="col-xl-3 col-lg-12">
+                <div class="glass-card p-4 h-100">
+                    <h6 class="text-white fw-bold text-center mb-4">SPENDING DISTRIBUTION</h6>
+                    <div style="height: 250px;">
+                        <canvas id="shareChart"></canvas>
                     </div>
+                </div>
+            </div>
+
+            @* --- BOTTOM: FINANCIAL STRATEGY TABLE --- *@
+            <div class="col-12">
+                <div class="glass-card">
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle mb-0 custom-analytics-table">
+                        <table class="table table-dark custom-table mb-0">
                             <thead>
                                 <tr>
-                                    <th class="ps-4">TEAM IDENTITY</th>
-                                    <th>SQUAD CAPACITY</th>
-                                    <th>REMAINING PURSE</th>
-                                    <th class="text-end pe-4">VALUATION</th>
+                                    <th>FRANCHISE</th>
+                                    <th>SQUAD COMPLETION</th>
+                                    <th>PURSE LEFT</th>
+                                    <th class="text-end">MAX SINGLE BID CAPABLE</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var team in Model)
                                 {
+                                    var squadCount = team.Players?.Count ?? 0;
+                                    var remainingSlots = 25 - squadCount;
+                                    var reservedForSquad = remainingSlots * 2000000m;
+                                    var maxBid = (decimal)team.Budget - reservedForSquad;
+
                                     <tr>
-                                        <td class="ps-4">
+                                        <td>
+                                            <div class="fw-bold text-white">@team.Name.ToUpper()</div>
+                                            <div class="tiny text-muted">STRENGTH: @(squadCount < 15 ? "CORE BUILDING" : "FESTERING")</div>
+                                        </td>
+                                        <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="status-pill-container @(team.Budget < 100000000 ? "status-low" : "status-high")">
-                                                    <span class="status-dot"></span>
-                                                </div>
-                                                <div class="ms-3">
-                                                    <div class="text-white fw-bold ls-tight">@team.Name.ToUpper()</div>
-                                                    <div class="text-secondary tiny fw-bold">ID: #2026-@team.Id</div>
+                                                <span class="me-2">@squadCount / 25</span>
+                                                <div class="progress flex-grow-1" style="height:4px; max-width:100px; background: #222;">
+                                                    <div class="progress-bar @(squadCount > 20 ? "bg-success" : "bg-info")" style="width: @(squadCount * 4)%"></div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>
-                                            <div class="d-flex align-items-center" style="max-width: 140px;">
-                                                <div class="progress w-100 me-2" style="height: 4px; background: rgba(255,255,255,0.05);">
-                                                    <div class="progress-bar bg-info" style="width: @((team.Players?.Count ?? 0) * 4)%"></div>
-                                                </div>
-                                                <span class="tiny text-secondary fw-bold">@(team.Players?.Count ?? 0)/25</span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="text-white fw-semibold">@FormatCurrency((decimal)team.Budget)</span>
-                                            @if (team.Budget < 50000000)
-                                            {
-                                                <span class="ms-2 tiny-badge text-danger">CRITICAL</span>
-                                            }
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            <span class="text-warning fw-black">@FormatCurrency(team.Players?.Sum(p => (decimal)p.SoldPrice) ?? 0m)</span>
+                                        <td class="text-warning fw-bold">@FormatCurrency((decimal)team.Budget)</td>
+                                        <td class="text-end text-white fw-bold">
+                                            <span class="text-success">@FormatCurrency(maxBid > 0 ? maxBid : 0)</span>
                                         </td>
                                     </tr>
                                 }
@@ -159,172 +157,148 @@
 </div>
 
 <style>
-    :root {
-        --glass: rgba(255, 255, 255, 0.03);
-        --glass-border: rgba(255, 255, 255, 0.08);
-        --bg-deep: #020617;
-    }
-
-    body {
-        background-color: var(--bg-deep);
+    .bg-dark-custom {
+        background-color: #0b0e14;
+        min-height: 100vh;
         font-family: 'Inter', sans-serif;
     }
 
-    .fw-900 {
-        font-weight: 900;
+    .stat-card {
+        background: #151921;
+        padding: 20px;
+        border-radius: 4px;
+        border-left: 4px solid #333;
     }
 
-    .fw-black {
+    .border-yellow {
+        border-left-color: #ffc107;
+    }
+
+    .border-green {
+        border-left-color: #28a745;
+    }
+
+    .border-info {
+        border-left-color: #0dcaf0;
+    }
+
+    .stat-card .label {
+        color: #888;
+        font-size: 0.65rem;
         font-weight: 800;
+        letter-spacing: 1.5px;
+        display: block;
+        margin-bottom: 5px;
     }
 
-    .ls-1 {
-        letter-spacing: 1px;
-    }
-
-    .ls-tight {
+    .stat-card .value {
+        font-size: 1.6rem;
+        font-weight: 900;
+        margin: 0;
         letter-spacing: -0.5px;
     }
 
-    .tiny {
-        font-size: 0.65rem;
-    }
-
-    .tiny-badge {
-        font-size: 0.55rem;
-        font-weight: 900;
-        padding: 2px 5px;
-        border: 1px solid currentColor;
-        border-radius: 4px;
+    .stat-card .sub-value {
+        font-size: 0.8rem;
+        font-weight: 600;
     }
 
     .glass-card {
-        background: var(--glass);
-        backdrop-filter: blur(12px);
-        border: 1px solid var(--glass-border);
-        border-radius: 12px;
+        background: #151921;
+        border: 1px solid #2d343f;
+        border-radius: 8px;
+        overflow: hidden;
     }
 
-    .border-top-warning {
-        border-top: 3px solid #eab308 !important;
-    }
-
-    .status-pill-container {
-        padding: 10px 4px;
-        background: rgba(255,255,255,0.03);
-        border-radius: 20px;
-        display: flex;
-        justify-content: center;
-        width: 14px;
-    }
-
-    .status-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-    }
-
-    .status-high .status-dot {
-        background: #10b981;
-        box-shadow: 0 0 8px #10b981;
-    }
-
-    .status-low .status-dot {
-        background: #ef4444;
-        box-shadow: 0 0 8px #ef4444;
-    }
-
-    .icon-shape {
-        width: 44px;
-        height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-    }
-
-    .bg-warning-soft {
-        background: rgba(234, 179, 8, 0.1);
-    }
-
-    .bg-dark-soft {
-        background: rgba(255, 255, 255, 0.05);
-    }
-
-    .custom-analytics-table thead th {
-        background: rgba(255, 255, 255, 0.02);
-        color: #64748b;
-        font-size: 0.65rem;
+    .card-header-custom {
+        background: #1c222d;
+        padding: 15px 20px;
+        color: #fff;
         font-weight: 800;
-        text-transform: uppercase;
-        padding: 15px;
-        border-bottom: 1px solid var(--glass-border);
+        font-size: 0.75rem;
+        border-bottom: 1px solid #2d343f;
+        letter-spacing: 1px;
     }
 
-    .custom-analytics-table tbody td {
-        padding: 16px 15px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    .bidder-item {
+        padding: 12px 20px;
+        border-bottom: 1px solid #232a35;
     }
 
-    .custom-analytics-table tbody tr:hover {
-        background: rgba(255, 255, 255, 0.02) !important;
-        cursor: default;
-    }
-
-    .animate-pulse {
-        animation: pulse 2s infinite;
-    }
-
-    @@keyframes pulse {
-        0%, 100% {
-            opacity: 1;
+        .bidder-item .name {
+            color: #888;
+            font-size: 0.7rem;
+            font-weight: 700;
         }
 
-        50% {
-            opacity: .5;
+        .bidder-item .price {
+            font-size: 1rem;
+            font-weight: 800;
         }
+
+    .custom-table thead th {
+        background: #1c222d;
+        color: #666;
+        font-size: 0.65rem;
+        border: none;
+        padding: 15px 20px;
+        letter-spacing: 1px;
+    }
+
+    .custom-table tbody td {
+        padding: 15px 20px;
+        border-color: #232a35;
+        vertical-align: middle;
+        color: #ccc;
+    }
+
+    .tiny {
+        font-size: 0.6rem;
+        font-weight: 700;
     }
 </style>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Data from Model
-        const teamNames = @Html.Raw(Json.Serialize(Model.Select(t => t.Name.ToUpper())));
+        // Use Full Names for tooltips and Short Names for the Axis
+        const fullTeamNames = @Html.Raw(Json.Serialize(Model.Select(t => t.Name.ToUpper())));
+        const shortTeamNames = @Html.Raw(Json.Serialize(Model.Select(t => GetShortName(t.Name))));
         const teamBudgets = @Html.Raw(Json.Serialize(Model.Select(t => t.Budget)));
         const teamSpent = @Html.Raw(Json.Serialize(Model.Select(t => t.Players?.Sum(p => (decimal)p.SoldPrice) ?? 0m)));
 
-        // JavaScript Currency Formatter
         function jsFormatCurrency(value) {
-            if (value >= 10000000) return '₹ ' + (value / 10000000).toFixed(2) + ' Cr';
-            if (value >= 100000) return '₹ ' + (value / 100000).toFixed(2) + ' L';
+            if (value >= 10000000) return '₹ ' + (value / 10000000).toFixed(1) + ' Cr';
+            if (value >= 100000) return '₹ ' + (value / 100000).toFixed(1) + ' L';
             return '₹ ' + value.toLocaleString();
         }
 
-        Chart.defaults.color = '#64748b';
+        Chart.defaults.color = '#777';
         Chart.defaults.font.family = "'Inter', sans-serif";
 
-        // Budget Analysis Chart
+        // Budget Chart - Fixed X-Axis Labels
         new Chart(document.getElementById('budgetChart'), {
             type: 'bar',
             data: {
-                labels: teamNames,
+                labels: shortTeamNames,
                 datasets: [{
-                    label: 'Liquidity',
                     data: teamBudgets,
-                    backgroundColor: '#eab308',
-                    borderRadius: 4,
-                    barThickness: 12
+                    backgroundColor: '#ffc107',
+                    hoverBackgroundColor: '#fff',
+                    barThickness: 25
                 }]
             },
             options: {
-                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
+                            title: function(context) {
+                                // Returns the full team name in the tooltip instead of abbreviation
+                                return fullTeamNames[context[0].dataIndex];
+                            },
                             label: function(context) {
                                 return ' Remaining: ' + jsFormatCurrency(context.raw);
                             }
@@ -333,30 +307,30 @@
                 },
                 scales: {
                     x: {
-                        grid: { color: 'rgba(255,255,255,0.03)' },
-                        border: { display: false },
                         ticks: {
-                            callback: function(value) { return jsFormatCurrency(value); }
-                        }
+                            font: { size: 11, weight: 'bold' },
+                            maxRotation: 0, // Keeps labels horizontal
+                            minRotation: 0
+                        },
+                        grid: { display: false }
                     },
                     y: {
-                        grid: { display: false },
-                        ticks: { color: '#f8fafc', font: { weight: '600', size: 10 } }
+                        grid: { color: '#222' },
+                        ticks: { callback: (val) => jsFormatCurrency(val) }
                     }
                 }
             }
         });
 
-        // Market Share Doughnut
+        // Share Chart (Doughnut)
         new Chart(document.getElementById('shareChart'), {
             type: 'doughnut',
             data: {
-                labels: teamNames,
+                labels: fullTeamNames,
                 datasets: [{
                     data: teamSpent,
-                    backgroundColor: ['#38bdf8', '#818cf8', '#fb7185', '#fbbf24', '#34d399', '#f472b6', '#a78bfa', '#f87171'],
-                    borderWidth: 0,
-                    hoverOffset: 15
+                    backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#22c55e', '#d946ef', '#8b5cf6', '#f87171'],
+                    borderWidth: 0
                 }]
             },
             options: {
@@ -368,8 +342,7 @@
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                let label = context.label || '';
-                                return label + ': ' + jsFormatCurrency(context.raw);
+                                return ' ' + context.label + ': ' + jsFormatCurrency(context.raw);
                             }
                         }
                     }
