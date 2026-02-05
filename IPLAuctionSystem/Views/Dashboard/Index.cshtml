@@ -3,15 +3,14 @@
 @{
     ViewData["Title"] = "Auction Intelligence 2026";
 
-    // 1. Calculate the actual current purse remaining across all teams
+    // Summing Budget (Budget is likely non-nullable decimal)
     var totalRemainingBudget = Model.Sum(t => (decimal)t.Budget);
 
-    // 2. Calculate the original total capacity (Total Spent + Total Remaining)
+    // Summing SoldPrice (Sum returns null if list is empty, so we use decimal?)
     var totalSpent = Model.Sum(t => t.Players?.Sum(p => (decimal?)p.SoldPrice) ?? 0m);
+
     var totalLeagueCapacity = totalSpent + totalRemainingBudget;
 
-    // 3. Liquidity is (What's left / Total Capacity)
-    // We use a ternary check to prevent division by zero
     var liquidityPercent = totalLeagueCapacity > 0
         ? (totalRemainingBudget / totalLeagueCapacity) * 100
         : 100;
@@ -35,7 +34,7 @@
 }
 
 <div class="analytics-wrapper py-4 bg-dark-custom">
-    @* --- DYNAMIC TOP METRICS --- *@
+    @* --- TOP METRICS --- *@
     <div class="container-fluid mb-4">
         <div class="row g-3">
             <div class="col-md-4">
@@ -57,7 +56,6 @@
             <div class="col-md-4">
                 <div class="stat-card border-info">
                     <span class="label">LEAGUE LIQUIDITY</span>
-                    @* Added ToString("0.#") to keep it clean (e.g., 85.5%) *@
                     <h2 class="value text-white">@liquidityPercent.ToString("0.#")%</h2>
                 </div>
             </div>
@@ -66,7 +64,7 @@
 
     <div class="container-fluid">
         <div class="row g-4">
-            @* --- LEFT: SPENDING POWER --- *@
+            @* --- CHARTS SECTION --- *@
             <div class="col-xl-3 col-lg-4">
                 <div class="glass-card h-100">
                     <div class="card-header-custom">
@@ -84,30 +82,25 @@
                 </div>
             </div>
 
-            @* --- CENTER: PURSE HEALTH CHART --- *@
             <div class="col-xl-6 col-lg-8">
                 <div class="glass-card p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h6 class="text-white fw-bold mb-0">REMAINING BUDGET BY FRANCHISE</h6>
-                        <span class="badge bg-dark text-warning border border-warning tiny">LIVE DATA</span>
-                    </div>
+                    <h6 class="text-white fw-bold mb-4 small text-uppercase">Remaining Budget By Franchise</h6>
                     <div style="height: 300px;">
                         <canvas id="budgetChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            @* --- RIGHT: MARKET SHARE --- *@
             <div class="col-xl-3 col-lg-12">
                 <div class="glass-card p-4 h-100">
-                    <h6 class="text-white fw-bold text-center mb-4">SPENDING DISTRIBUTION</h6>
+                    <h6 class="text-white fw-bold text-center mb-4 small text-uppercase">Spending Distribution</h6>
                     <div style="height: 250px;">
                         <canvas id="shareChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            @* --- BOTTOM: FINANCIAL STRATEGY TABLE --- *@
+            @* --- FRANCHISE TABLE WITH EXPANDABLE SQUADS --- *@
             <div class="col-12">
                 <div class="glass-card">
                     <div class="table-responsive">
@@ -117,7 +110,7 @@
                                     <th>FRANCHISE</th>
                                     <th>SQUAD COMPLETION</th>
                                     <th>PURSE LEFT</th>
-                                    <th class="text-end">MAX SINGLE BID CAPABLE</th>
+                                    <th class="text-end">MAX SINGLE BID</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -127,15 +120,21 @@
                                     var remainingSlots = 25 - squadCount;
                                     var reservedForSquad = remainingSlots * 2000000m;
                                     var maxBid = (decimal)team.Budget - reservedForSquad;
+                                    var collapseId = "squad_" + team.Id;
 
-                                    <tr>
+                                    <tr class="align-middle clickable-row" data-bs-toggle="collapse" data-bs-target="#@collapseId" style="cursor: pointer;">
                                         <td>
-                                            <div class="fw-bold text-white">@team.Name.ToUpper()</div>
-                                            <div class="tiny text-muted">STRENGTH: @(squadCount < 15 ? "CORE BUILDING" : "FESTERING")</div>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fa-solid fa-chevron-right me-3 text-muted collapse-arrow"></i>
+                                                <div>
+                                                    <div class="fw-bold text-white">@team.Name.ToUpper()</div>
+                                                    <div class="tiny text-muted text-uppercase">Click to view roster</div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <span class="me-2">@squadCount / 25</span>
+                                                <span class="me-2 small">@squadCount / 25</span>
                                                 <div class="progress flex-grow-1" style="height:4px; max-width:100px; background: #222;">
                                                     <div class="progress-bar @(squadCount > 20 ? "bg-success" : "bg-info")" style="width: @(squadCount * 4)%"></div>
                                                 </div>
@@ -144,6 +143,50 @@
                                         <td class="text-warning fw-bold">@FormatCurrency((decimal)team.Budget)</td>
                                         <td class="text-end text-white fw-bold">
                                             <span class="text-success">@FormatCurrency(maxBid > 0 ? maxBid : 0)</span>
+                                        </td>
+                                    </tr>
+
+                                    <tr class="collapse-row">
+                                        <td colspan="4" class="p-0 border-0">
+                                            <div class="collapse bg-squad-panel shadow-inner" id="@collapseId">
+                                                <div class="p-4">
+                                                    <div class="row g-3">
+                                                        @if (team.Players != null && team.Players.Any())
+                                                        {
+                                                            foreach (var player in team.Players)
+                                                            {
+                                                                <div class="col-xxl-2 col-lg-3 col-md-4 col-6">
+                                                                    <div class="player-mini-card">
+                                                                        <div class="player-img-wrapper">
+                                                                            @if (!string.IsNullOrEmpty(player.ProfilePicture))
+                                                                            {
+                                                                                <img src="~/images/players/@player.ProfilePicture" alt="@player.Name" asp-append-version="true">
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <div class="h-100 d-flex align-items-center justify-content-center bg-dark">
+                                                                                    <i class="fa-solid fa-user text-white-50 fa-2x"></i>
+                                                                                </div>
+                                                                            }
+                                                                            <span class="category-badge">@player.Category</span>
+                                                                        </div>
+                                                                        <div class="player-details">
+                                                                            <div class="p-name">@player.Name</div>
+                                                                            <div class="p-cost">@FormatCurrency(player.SoldPrice)</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="col-12 text-center py-5">
+                                                                <div class="text-muted small"><i class="fa-solid fa-circle-info me-2"></i>No players signed yet.</div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
@@ -192,7 +235,7 @@
     }
 
     .stat-card .value {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
         font-weight: 900;
         margin: 0;
         letter-spacing: -0.5px;
@@ -256,98 +299,122 @@
         font-size: 0.6rem;
         font-weight: 700;
     }
+
+    /* SQUAD GRID STYLES */
+    .bg-squad-panel {
+        background: #0f1218;
+        border-bottom: 1px solid #2d343f;
+    }
+
+    .clickable-row:hover {
+        background: #1c222d !important;
+    }
+
+    .collapse-arrow {
+        transition: transform 0.3s;
+    }
+
+    .clickable-row[aria-expanded="true"] .collapse-arrow {
+        transform: rotate(90deg);
+        color: #ffc107 !important;
+    }
+
+    .player-mini-card {
+        background: #1c222d;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid #2d343f;
+        transition: transform 0.2s;
+    }
+
+        .player-mini-card:hover {
+            transform: translateY(-3px);
+            border-color: #ffc107;
+        }
+
+    .player-img-wrapper {
+        position: relative;
+        height: 140px;
+        background: #0b0e14;
+    }
+
+        .player-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .category-badge {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        font-size: 0.55rem;
+        background: rgba(0,0,0,0.85);
+        color: #ffc107;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        border: 1px solid rgba(255,193,7,0.3);
+    }
+
+    .player-details {
+        padding: 10px;
+    }
+
+    .p-name {
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .p-cost {
+        color: #28a745;
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
 </style>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Use Full Names for tooltips and Short Names for the Axis
-        const fullTeamNames = @Html.Raw(Json.Serialize(Model.Select(t => t.Name.ToUpper())));
-        const shortTeamNames = @Html.Raw(Json.Serialize(Model.Select(t => GetShortName(t.Name))));
-        const teamBudgets = @Html.Raw(Json.Serialize(Model.Select(t => t.Budget)));
-        const teamSpent = @Html.Raw(Json.Serialize(Model.Select(t => t.Players?.Sum(p => (decimal)p.SoldPrice) ?? 0m)));
+        const fullNames = @Html.Raw(Json.Serialize(Model.Select(t => t.Name.ToUpper())));
+        const shortNames = @Html.Raw(Json.Serialize(Model.Select(t => GetShortName(t.Name))));
+        const budgets = @Html.Raw(Json.Serialize(Model.Select(t => t.Budget)));
+        const spent = @Html.Raw(Json.Serialize(Model.Select(t => t.Players?.Sum(p => (decimal)p.SoldPrice) ?? 0m)));
 
-        function jsFormatCurrency(value) {
-            if (value >= 10000000) return '₹ ' + (value / 10000000).toFixed(1) + ' Cr';
-            if (value >= 100000) return '₹ ' + (value / 100000).toFixed(1) + ' L';
-            return '₹ ' + value.toLocaleString();
+        function jsFormat(v) {
+            if (v >= 10000000) return '₹ ' + (v / 10000000).toFixed(1) + ' Cr';
+            if (v >= 100000) return '₹ ' + (v / 100000).toFixed(1) + ' L';
+            return '₹ ' + v.toLocaleString();
         }
 
         Chart.defaults.color = '#777';
         Chart.defaults.font.family = "'Inter', sans-serif";
 
-        // Budget Chart - Fixed X-Axis Labels
         new Chart(document.getElementById('budgetChart'), {
             type: 'bar',
             data: {
-                labels: shortTeamNames,
-                datasets: [{
-                    data: teamBudgets,
-                    backgroundColor: '#ffc107',
-                    hoverBackgroundColor: '#fff',
-                    barThickness: 25
-                }]
+                labels: shortNames,
+                datasets: [{ data: budgets, backgroundColor: '#ffc107', barThickness: 25 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            title: function(context) {
-                                // Returns the full team name in the tooltip instead of abbreviation
-                                return fullTeamNames[context[0].dataIndex];
-                            },
-                            label: function(context) {
-                                return ' Remaining: ' + jsFormatCurrency(context.raw);
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            font: { size: 11, weight: 'bold' },
-                            maxRotation: 0, // Keeps labels horizontal
-                            minRotation: 0
-                        },
-                        grid: { display: false }
-                    },
-                    y: {
-                        grid: { color: '#222' },
-                        ticks: { callback: (val) => jsFormatCurrency(val) }
-                    }
-                }
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { callbacks: { title: (c) => fullNames[c[0].dataIndex], label: (c) => ' Remaining: ' + jsFormat(c.raw) } } },
+                scales: { x: { grid: { display: false } }, y: { grid: { color: '#222' }, ticks: { callback: (v) => jsFormat(v) } } }
             }
         });
 
-        // Share Chart (Doughnut)
         new Chart(document.getElementById('shareChart'), {
             type: 'doughnut',
             data: {
-                labels: fullTeamNames,
-                datasets: [{
-                    data: teamSpent,
-                    backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#22c55e', '#d946ef', '#8b5cf6', '#f87171'],
-                    borderWidth: 0
-                }]
+                labels: fullNames,
+                datasets: [{ data: spent, backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#22c55e', '#d946ef', '#8b5cf6', '#f87171'], borderWidth: 0 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '82%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return ' ' + context.label + ': ' + jsFormatCurrency(context.raw);
-                            }
-                        }
-                    }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, cutout: '82%', plugins: { legend: { display: false } } }
         });
     </script>
 }
