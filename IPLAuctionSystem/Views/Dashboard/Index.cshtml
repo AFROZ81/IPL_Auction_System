@@ -386,15 +386,17 @@
         const budgets = @Html.Raw(Json.Serialize(Model.Select(t => t.Budget)));
         const spent = @Html.Raw(Json.Serialize(Model.Select(t => t.Players?.Sum(p => (decimal)p.SoldPrice) ?? 0m)));
 
+        // Custom formatting function for lakhs/crores
         function jsFormat(v) {
-            if (v >= 10000000) return '₹ ' + (v / 10000000).toFixed(1) + ' Cr';
-            if (v >= 100000) return '₹ ' + (v / 100000).toFixed(1) + ' L';
-            return '₹ ' + v.toLocaleString();
+            if (v >= 10000000) return '₹ ' + (v / 10000000).toFixed(2) + ' Cr';
+            if (v >= 100000) return '₹ ' + (v / 100000).toFixed(2) + ' L';
+            return '₹ ' + v.toLocaleString('en-IN');
         }
 
         Chart.defaults.color = '#777';
         Chart.defaults.font.family = "'Inter', sans-serif";
 
+        // 1. Remaining Budget Bar Chart
         new Chart(document.getElementById('budgetChart'), {
             type: 'bar',
             data: {
@@ -403,18 +405,52 @@
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { callbacks: { title: (c) => fullNames[c[0].dataIndex], label: (c) => ' Remaining: ' + jsFormat(c.raw) } } },
-                scales: { x: { grid: { display: false } }, y: { grid: { color: '#222' }, ticks: { callback: (v) => jsFormat(v) } } }
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (c) => fullNames[c[0].dataIndex],
+                            label: (c) => ' Remaining: ' + jsFormat(c.raw)
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { color: '#222' }, ticks: { callback: (v) => jsFormat(v) } }
+                }
             }
         });
 
+        // 2. Spending Distribution Doughnut Chart
         new Chart(document.getElementById('shareChart'), {
             type: 'doughnut',
             data: {
                 labels: fullNames,
-                datasets: [{ data: spent, backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#22c55e', '#d946ef', '#8b5cf6', '#f87171'], borderWidth: 0 }]
+                datasets: [{
+                    data: spent,
+                    backgroundColor: ['#0ea5e9', '#6366f1', '#f43f5e', '#eab308', '#22c55e', '#d946ef', '#8b5cf6', '#f87171'],
+                    borderWidth: 0
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '82%', plugins: { legend: { display: false } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '82%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            // This adds the Cr/L formatting to the doughnut hover
+                            label: (c) => {
+                                let label = c.label || '';
+                                if (label) label += ': ';
+                                label += jsFormat(c.raw);
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
         });
     </script>
 }
