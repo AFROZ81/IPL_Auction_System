@@ -34,9 +34,13 @@
                         <div class="list-group-item bg-transparent text-white d-flex justify-content-between py-3 border-secondary">
                             <span class="text-secondary small fw-bold uppercase">Auction Status:</span>
                             <span>
-                                @if (Model.IsSold)
+                                @if (Model.AuctionStatus == AuctionStatus.Sold)
                                 {
                                     <span class="text-success fw-bold">SOLD to @Model.Team?.Name</span>
+                                }
+                                else if (Model.AuctionStatus == AuctionStatus.Unsold)
+                                {
+                                    <span class="text-danger fw-bold">UNSOLD</span>
                                 }
                                 else
                                 {

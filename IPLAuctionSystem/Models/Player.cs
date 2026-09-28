@@ -4,6 +4,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace IPLAuctionSystem.Models;
 
+public enum AuctionStatus
+{
+    Pending = 0, // Still in the auction pool
+    Sold = 1,    // Bought by a franchise
+    Unsold = 2   // Passed in the war room, can be re-auctioned
+}
+
 public class Player
 {
     [Key]
@@ -17,7 +24,9 @@ public class Player
 
     [Precision(18, 2)]
     public decimal SoldPrice { get; set; }
-    public bool IsSold { get; set; } = false;
+
+    // Replaces the old ambiguous IsSold flag (which was true for BOTH sold and unsold players)
+    public AuctionStatus AuctionStatus { get; set; } = AuctionStatus.Pending;
 
     public string? ProfilePicture { get; set; }
 

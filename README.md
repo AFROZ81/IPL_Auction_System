@@ -71,7 +71,12 @@ The app launches over HTTPS using the URL printed in the console (see `Propertie
 
 ## How the Auction Works
 
-1. The war room loads the next unsold player.
+1. The war room loads the next `Pending` player.
 2. Teams place bids, which `AuctionHub` broadcasts to everyone in real time.
 3. On **Sell**, the app checks the team's budget, deducts the winning amount, and records the player's sold price and team — all within a single transaction.
 4. On **Pass**, the player is marked unsold and the next player loads.
+
+## Developer Notes
+
+- **Machine-specific connection string**: `appsettings.json` ships with the original developer's SQL Server instance (`Server=LRMC-20-PC\SQLEXPRESS01;...`). Every contributor must edit `DefaultConnection` to point at their own SQL Server / Express / LocalDB instance before running the app.
+- **`AuctionStatus` enum**: Each `Player` carries an `AuctionStatus` of `Pending`, `Sold`, or `Unsold` (replacing the old boolean `IsSold`, which was ambiguously set to `true` for both sold _and_ passed players). The war room surfaces the next `Pending` player; **Sell** sets `Sold` (with team + price) and **Pass** sets `Unsold` (clearing team + price). `Unsold` players can still be re-auctioned.

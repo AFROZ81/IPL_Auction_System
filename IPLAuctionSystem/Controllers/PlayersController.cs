@@ -65,7 +65,7 @@ namespace IPLAuctionSystem.Controllers
                     // 2. Update Player details
                     player.TeamId = teamId;
                     player.SoldPrice = bidAmount;
-                    player.IsSold = true;
+                    player.AuctionStatus = AuctionStatus.Sold;
 
                     _context.Update(team);
                     _context.Update(player);
@@ -109,7 +109,7 @@ namespace IPLAuctionSystem.Controllers
         // POST: Players/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Category,BasePrice,SoldPrice,IsSold,TeamId,ImageFile")] Player player)
+        public async Task<IActionResult> Create([Bind("Id,Name,Category,BasePrice,SoldPrice,AuctionStatus,TeamId,ImageFile")] Player player)
         {
             if (ModelState.IsValid)
             {
@@ -141,7 +141,7 @@ namespace IPLAuctionSystem.Controllers
         // POST: Players/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Category,BasePrice,SoldPrice,IsSold,TeamId,ProfilePicture,ImageFile")] Player player)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Category,BasePrice,SoldPrice,AuctionStatus,TeamId,ProfilePicture,ImageFile")] Player player)
         {
             if (id != player.Id) return NotFound();
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IPLAuctionSystem.Data;
+using IPLAuctionSystem.Models;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace IPLAuctionSystem.Controllers
@@ -17,10 +18,10 @@ namespace IPLAuctionSystem.Controllers
         // GET: Auction War Room
         public async Task<IActionResult> Index()
         {
-            // Get the first player who isn't processed yet
+            // Get the first player who hasn't been through the war room yet
             var player = await _context.Players
                 .OrderBy(p => p.Id)
-                .FirstOrDefaultAsync(p => !p.IsSold);
+                .FirstOrDefaultAsync(p => p.AuctionStatus == AuctionStatus.Pending);
 
             // Get teams and create a SelectList for the dropdown
             var teamsList = await _context.Teams.ToListAsync();
@@ -49,7 +50,7 @@ namespace IPLAuctionSystem.Controllers
             try
             {
                 team.Budget -= finalPrice;
-                player.IsSold = true;
+                player.AuctionStatus = AuctionStatus.Sold;
                 player.TeamId = teamId;
                 player.SoldPrice = finalPrice;
 
@@ -73,7 +74,7 @@ namespace IPLAuctionSystem.Controllers
             var player = await _context.Players.FindAsync(playerId);
             if (player != null)
             {
-                player.IsSold = true; // Mark as processed
+                player.AuctionStatus = AuctionStatus.Unsold; // Passed, but can be re-auctioned
                 player.SoldPrice = 0; // No price
                 player.TeamId = null; // No team
                 _context.Update(player);

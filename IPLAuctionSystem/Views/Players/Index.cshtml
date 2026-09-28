@@ -51,14 +51,14 @@
         <div class="col-md-4">
             <div class="card bg-dark border-secondary p-3 text-center h-100 shadow-sm border-top border-4 border-success">
                 <small class="text-secondary text-uppercase fw-bold ls-1">Sold</small>
-                @* Logic: IsSold must be true AND price must be > 0 *@
-                <h2 class="text-success mb-0 fw-bold">@Model.Count(p => p.IsSold && p.SoldPrice > 0)</h2>
+                @* Logic: explicit Sold status *@
+                <h2 class="text-success mb-0 fw-bold">@Model.Count(p => p.AuctionStatus == IPLAuctionSystem.Models.AuctionStatus.Sold)</h2>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card bg-dark border-secondary p-3 text-center h-100 shadow-sm border-top border-4 border-warning">
                 <small class="text-secondary text-uppercase fw-bold ls-1">Remaining</small>
-                <h2 class="text-warning mb-0 fw-bold">@Model.Count(p => !p.IsSold)</h2>
+                <h2 class="text-warning mb-0 fw-bold">@Model.Count(p => p.AuctionStatus == AuctionStatus.Pending)</h2>
             </div>
         </div>
     </div>
@@ -130,7 +130,7 @@
                             </td>
                             <td class="text-secondary fw-semibold">@FormatCurrency((decimal)item.BasePrice)</td>
                             <td>
-                                @if (item.IsSold && item.SoldPrice > 0)
+                                @if (item.AuctionStatus == AuctionStatus.Sold)
                                 {
                                     <span class="text-success fw-bold fs-5">@FormatCurrency((decimal)item.SoldPrice)</span>
                                 }
@@ -140,11 +140,11 @@
                                 }
                             </td>
                             <td>
-                                @if (item.IsSold && item.SoldPrice > 0)
+                                @if (item.AuctionStatus == AuctionStatus.Sold)
                                 {
                                     <span class="badge bg-success shadow-sm"><i class="fa-solid fa-check me-1"></i> SOLD</span>
                                 }
-                                else if (item.IsSold && item.SoldPrice == 0)
+                                else if (item.AuctionStatus == AuctionStatus.Unsold)
                                 {
                                     <span class="badge bg-danger shadow-sm"><i class="fa-solid fa-circle-xmark me-1"></i> UNSOLD</span>
                                 }
@@ -154,7 +154,7 @@
                                 }
                             </td>
                             <td>
-                                @if (item.IsSold && item.Team != null)
+                                @if (item.AuctionStatus == IPLAuctionSystem.Models.AuctionStatus.Sold && item.Team != null)
                                 {
                                     <span class="text-info fw-bold">@item.Team.Name</span>
                                 }
@@ -166,7 +166,7 @@
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-2">
                                     @* Show SELL button only if Pending OR Unsold (allows re-auctioning unsold players) *@
-                                    @if (!item.IsSold || (item.IsSold && item.SoldPrice == 0))
+                                    @if (item.AuctionStatus == AuctionStatus.Pending || item.AuctionStatus == AuctionStatus.Unsold)
                                     {
                                         <button class="btn btn-sell-action shadow-sm"
                                                 data-bs-toggle="modal"
@@ -193,7 +193,7 @@
                                 </div>
 
                                 @* Sell Modal *@
-                                @if (!item.IsSold || (item.IsSold && item.SoldPrice == 0))
+                                @if (item.AuctionStatus == AuctionStatus.Pending || item.AuctionStatus == AuctionStatus.Unsold)
                                 {
                                     <div class="modal fade text-start" id="sellModal-@item.Id" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-dialog-centered">

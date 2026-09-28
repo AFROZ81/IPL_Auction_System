@@ -77,11 +77,9 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label text-uppercase small fw-bold text-secondary">Draft Status</label>
-                                <div class="form-check form-switch p-3 rounded bg-accent border border-secondary d-flex align-items-center">
-                                    <input class="form-check-input ms-0 me-3" type="checkbox" asp-for="IsSold" id="isSoldSwitch">
-                                    <label class="form-check-label text-white mb-0" for="isSoldSwitch">Mark as Pre-Sold</label>
-                                </div>
+                                <label asp-for="AuctionStatus" class="form-label text-uppercase small fw-bold text-secondary">Draft Status</label>
+                                <select asp-for="AuctionStatus" class="form-select bg-accent text-white border-secondary"
+                                        asp-items="Html.GetEnumSelectList<AuctionStatus>()"></select>
                             </div>
 
                             <div class="col-md-6">

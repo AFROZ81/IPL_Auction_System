@@ -2,7 +2,7 @@
 
 @{
     ViewData["Title"] = "Auction Analytics Dashboard";
-    var topBuys = Model?.Where(p => p.IsSold).OrderByDescending(p => p.SoldPrice).Take(3).ToList() ?? new List<IPLAuctionSystem.Models.Player>();
+    var topBuys = Model?.Where(p => p.AuctionStatus == AuctionStatus.Sold).OrderByDescending(p => p.SoldPrice).Take(3).ToList() ?? new List<IPLAuctionSystem.Models.Player>();
     var teams = ViewBag.Teams as IEnumerable<IPLAuctionSystem.Models.Team>;
 }
 
@@ -169,18 +169,22 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="@(player.SoldPrice > 0 ? "text-success" : "text-secondary") fw-extrabold fs-5">
+                                                <span class="@(player.AuctionStatus == AuctionStatus.Sold ? "text-success" : "text-secondary") fw-extrabold fs-5">
                                                     @FormatCurrency(player.SoldPrice)
                                                 </span>
                                             </td>
                                             <td class="text-end pe-4">
-                                                @if (player.SoldPrice > 0)
+                                                @if (player.AuctionStatus == AuctionStatus.Sold)
                                                 {
                                                     <span class="badge bg-success-subtle text-success border border-success px-3">SOLD</span>
                                                 }
-                                                else
+                                                else if (player.AuctionStatus == AuctionStatus.Unsold)
                                                 {
                                                     <span class="badge bg-danger-subtle text-danger border border-danger px-3">UNSOLD</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning border border-warning px-3">PENDING</span>
                                                 }
                                             </td>
                                         </tr>

@@ -106,10 +106,10 @@
                                 </div>
 
                                 <div class="col-12">
-                                    <div class="form-check form-switch p-3 rounded bg-accent border border-secondary">
-                                        <input class="form-check-input ms-0 me-3" type="checkbox" asp-for="IsSold" id="isSoldSwitch">
-                                        <label class="form-check-label text-white fw-bold" for="isSoldSwitch">Finalize Auction Status (Is Sold)</label>
-                                    </div>
+                                    <label asp-for="AuctionStatus" class="form-label text-secondary small fw-bold">AUCTION STATUS</label>
+                                    <select asp-for="AuctionStatus" class="form-select bg-dark text-white border-secondary shadow-none"
+                                            asp-items="Html.GetEnumSelectList<AuctionStatus>()"></select>
+                                    <span asp-validation-for="AuctionStatus" class="text-danger small"></span>
                                 </div>
                             </div>
 
