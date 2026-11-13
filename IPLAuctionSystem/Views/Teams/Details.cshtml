@@ -1,7 +1,14 @@
 ﻿@model IPLAuctionSystem.Models.Team
+#pragma warning disable CS8602
 
 @{
     ViewData["Title"] = "Franchise Profile";
+    var teamLogo = Model.TeamLogo ?? string.Empty;
+    var teamName = Model.Name ?? string.Empty;
+    var teamOwner = Model.Owner ?? string.Empty;
+    var budgetDisplay = (Model.Budget ?? 0m).ToString("N0");
+    var squadCount = Model.Players?.Count ?? 0;
+    var teamIdDisplay = $"#FRN-{Model.Id:D4}";
 }
 
 <div class="container py-5">
@@ -20,29 +27,29 @@
         @* Left Column: Franchise Identity *@
         <div class="col-md-4">
             <div class="card bg-dark border-secondary shadow-lg text-center p-4 h-100">
-                @if (!string.IsNullOrEmpty(Model.TeamLogo))
+                @if (!string.IsNullOrEmpty(teamLogo))
                 {
                     <div class="mx-auto mb-4 p-3 bg-white rounded-3 shadow-sm d-flex align-items-center justify-content-center"
                          style="width: 180px; height: 180px;">
-                        <img src="~/images/teams/@Model.TeamLogo" class="img-fluid" style="max-height: 100%; object-fit: contain;" alt="@Model.Name Logo" />
+                         <img src="~/images/teams/@teamLogo" class="img-fluid" style="max-height: 100%; object-fit: contain;" alt="@teamName Logo" />
                     </div>
                 }
                 else
                 {
                     <div class="mx-auto rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center mb-4 shadow"
                          style="width: 120px; height: 120px; font-size: 3.5rem; font-weight: 800;">
-                        @Model.Name.Substring(0, 1)
+                        @teamName.Substring(0, 1)
                     </div>
                 }
 
-                <h2 class="text-white fw-bold text-uppercase tracking-tight">@Model.Name</h2>
+                <h2 class="text-white fw-bold text-uppercase tracking-tight">@teamName</h2>
                 <div class="badge bg-warning text-dark mb-3 px-3 py-2">OFFICIAL FRANCHISE</div>
 
                 <hr class="border-secondary mx-4" />
 
                 <div class="text-start mt-3 px-3">
                     <label class="text-secondary small text-uppercase fw-bold d-block mb-1">Corporate Owner</label>
-                    <p class="text-white fs-5"><i class="fa-solid fa-building me-2 text-info"></i>@Model.Owner</p>
+                            <p class="text-white fs-5"><i class="fa-solid fa-building me-2 text-info"></i>@teamOwner</p>
                 </div>
             </div>
         </div>
@@ -61,7 +68,7 @@
                         <div class="col-sm-6">
                             <div class="p-4 rounded-4 border border-secondary shadow-sm" style="background: linear-gradient(145deg, #1e293b, #0f172a);">
                                 <label class="text-secondary small text-uppercase fw-bold mb-2 d-block">Available Purse</label>
-                                <h2 class="text-success fw-bold mb-0">₹ @(((decimal)Model.Budget).ToString("N0"))</h2>
+                                <h2 class="text-success fw-bold mb-0">₹ @budgetDisplay</h2>
                                 <div class="progress mt-3" style="height: 8px; background-color: #0f172a;">
                                     <div class="progress-bar bg-success shadow-sm" role="progressbar" style="width: 100%"></div>
                                 </div>
@@ -74,15 +81,15 @@
                             <div class="p-4 rounded-4 border border-secondary shadow-sm" style="background: linear-gradient(145deg, #1e293b, #0f172a);">
                                 <label class="text-secondary small text-uppercase fw-bold mb-2 d-block">Squad Strength</label>
                                 <h2 class="text-info fw-bold mb-0">
-                                    @(Model.Players?.Count ?? 0) <span class="fs-5 text-secondary">/ 25</span>
+                                    @squadCount <span class="fs-5 text-secondary">/ 25</span>
                                 </h2>
                                 <div class="progress mt-3" style="height: 8px; background-color: #0f172a;">
                                     @{
-                                        var squadPercent = ((Model.Players?.Count ?? 0) / 25.0) * 100;
+                                        var squadPercent = (squadCount / 25.0) * 100;
                                     }
                                     <div class="progress-bar bg-info" role="progressbar" style="width: @squadPercent%"></div>
                                 </div>
-                                <p class="small text-muted mt-2 mb-0">Slots remaining: @(25 - (Model.Players?.Count ?? 0))</p>
+                                <p class="small text-muted mt-2 mb-0">Slots remaining: @(25 - squadCount)</p>
                             </div>
                         </div>
                     </div>
@@ -93,7 +100,7 @@
                         <div class="row g-3">
                             <div class="col-6 col-md-4">
                                 <span class="text-muted d-block small">System ID</span>
-                                <span class="font-monospace text-warning fw-bold">#FRN-@(Model.Id.ToString("D4"))</span>
+                                 <span class="font-monospace text-warning fw-bold">@teamIdDisplay</span>
                             </div>
                             <div class="col-6 col-md-4">
                                 <span class="text-muted d-block small">Compliance Status</span>
@@ -132,3 +139,6 @@
         box-shadow: 0 0 10px rgba(25, 135, 84, 0.5);
     }
 </style>
+@{
+#pragma warning restore CS8602
+}

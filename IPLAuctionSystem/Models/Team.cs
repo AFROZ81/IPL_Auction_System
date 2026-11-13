@@ -14,7 +14,7 @@ public class Team
     public string? Owner { get; set; }
 
     [Precision(18, 2)]
-    public decimal? Budget { get; set; } = 100000000; // 100 Crores
+    public decimal? Budget { get; set; } = 1000000000; // ₹100 Cr
     public string? TeamLogo { get; set; }
 
     // Not saved in Database - used for the form upload

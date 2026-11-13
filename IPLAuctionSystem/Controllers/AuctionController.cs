@@ -1,86 +1,69 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using IPLAuctionSystem.Data;
-using IPLAuctionSystem.Models;
-using Microsoft.AspNetCore.Mvc.Rendering;
+﻿using IPLAuctionSystem.Application.DTOs;
+using IPLAuctionSystem.Application.Interfaces;
+using IPLAuctionSystem.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace IPLAuctionSystem.Controllers
 {
+    [Authorize]
     public class AuctionController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IAuctionService _auctionService;
+        private readonly IBidService _bidService;
+        private readonly ITeamService _teamService;
+        private readonly IPlayerService _playerService;
 
-        public AuctionController(ApplicationDbContext context)
+        public AuctionController(IAuctionService auctionService, IBidService bidService, ITeamService teamService, IPlayerService playerService)
         {
-            _context = context;
+            _auctionService = auctionService;
+            _bidService = bidService;
+            _teamService = teamService;
+            _playerService = playerService;
         }
 
         // GET: Auction War Room
+        [Authorize(Policy = Policies.CanViewFinancials)]
         public async Task<IActionResult> Index()
         {
-            // Get the first player who hasn't been through the war room yet
-            var player = await _context.Players
-                .OrderBy(p => p.Id)
-                .FirstOrDefaultAsync(p => p.AuctionStatus == AuctionStatus.Pending);
+            var currentAuction = await _auctionService.GetCurrentAuctionAsync();
+            var teams = await _teamService.GetAllTeamsAsync();
 
-            // Get teams and create a SelectList for the dropdown
-            var teamsList = await _context.Teams.ToListAsync();
-            ViewBag.Teams = new SelectList(teamsList, "Id", "Name");
-
-            return View(player);
+            ViewBag.Teams = teams;
+            return View(currentAuction);
         }
 
         // POST: Finalize Sale
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.CanRunAuction)]
         public async Task<IActionResult> SellPlayer(int playerId, int teamId, decimal finalPrice)
         {
-            var player = await _context.Players.FindAsync(playerId);
-            var team = await _context.Teams.FindAsync(teamId);
+            var success = await _playerService.SellPlayerAsync(playerId, teamId, finalPrice);
 
-            if (player == null || team == null) return RedirectToAction(nameof(Index));
-
-            if (team.Budget < finalPrice)
+            if (!success)
             {
-                TempData["Error"] = "Insufficient budget for this team!";
+                TempData["Error"] = "Insufficient budget or invalid player/team.";
                 return RedirectToAction(nameof(Index));
             }
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                team.Budget -= finalPrice;
-                player.AuctionStatus = AuctionStatus.Sold;
-                player.TeamId = teamId;
-                player.SoldPrice = finalPrice;
-
-                _context.Update(team);
-                _context.Update(player);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                TempData["Success"] = $"{player.Name} SOLD to {team.Name}!";
-            }
-            catch { await transaction.RollbackAsync(); }
-
+            TempData["Success"] = "Player sold!";
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: Mark Unsold (Pass)
+        // POST: Mark Unsold
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.CanRunAuction)]
         public async Task<IActionResult> MarkUnsold(int playerId)
         {
-            var player = await _context.Players.FindAsync(playerId);
-            if (player != null)
+            var success = await _playerService.MarkPlayerUnsoldAsync(playerId);
+
+            if (success)
             {
-                player.AuctionStatus = AuctionStatus.Unsold; // Passed, but can be re-auctioned
-                player.SoldPrice = 0; // No price
-                player.TeamId = null; // No team
-                _context.Update(player);
-                await _context.SaveChangesAsync();
-                TempData["Info"] = $"{player.Name} went unsold.";
+                TempData["Info"] = "Player marked as unsold.";
             }
+
             return RedirectToAction(nameof(Index));
         }
     }

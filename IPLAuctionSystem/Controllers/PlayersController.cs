@@ -1,188 +1,132 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using IPLAuctionSystem.Application.DTOs;
+using IPLAuctionSystem.Application.Interfaces;
+using IPLAuctionSystem.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using IPLAuctionSystem.Data;
-using IPLAuctionSystem.Models;
-using Microsoft.AspNetCore.Hosting;
-using System.IO;
 
 namespace IPLAuctionSystem.Controllers
 {
+    [Authorize]
     public class PlayersController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IWebHostEnvironment _hostEnvironment;
+        private readonly IPlayerService _playerService;
+        private readonly ITeamService _teamService;
 
-        public PlayersController(ApplicationDbContext context, IWebHostEnvironment hostEnvironment)
+        public PlayersController(IPlayerService playerService, ITeamService teamService)
         {
-            _context = context;
-            _hostEnvironment = hostEnvironment;
+            _playerService = playerService;
+            _teamService = teamService;
         }
 
         // GET: Players
+        [Authorize(Policy = Policies.CanViewFinancials)]
         public async Task<IActionResult> Index()
         {
-            // Populate ViewBag with Teams so the "Sell" modal dropdown has data
-            ViewBag.Teams = await _context.Teams.OrderBy(t => t.Name).ToListAsync();
+            var players = await _playerService.GetAllPlayersAsync();
+            var teams = await _teamService.GetAllTeamsAsync();
 
-            var applicationDbContext = _context.Players.Include(p => p.Team);
-            return View(await applicationDbContext.ToListAsync());
+            ViewBag.Teams = teams;
+            return View(players);
         }
 
-        // NEW ACTION: Sell Player Logic
+        // POST: Players/SellPlayer
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = Policies.CanRunAuction)]
         public async Task<IActionResult> SellPlayer(int playerId, int teamId, decimal bidAmount)
         {
-            var player = await _context.Players.FindAsync(playerId);
-            var team = await _context.Teams.FindAsync(teamId);
+            var success = await _playerService.SellPlayerAsync(playerId, teamId, bidAmount);
 
-            if (player == null || team == null)
+            if (!success)
             {
-                TempData["Error"] = "Player or Franchise not found.";
+                TempData["Error"] = "Unable to complete the sale. Check funds and player/team validity.";
                 return RedirectToAction(nameof(Index));
             }
 
-            // Financial Validation
-            if (team.Budget < bidAmount)
-            {
-                TempData["Error"] = $"Insufficient Funds! {team.Name} only has ₹{team.Budget:N0} remaining.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            // Transactional update to ensure data integrity
-            using (var transaction = await _context.Database.BeginTransactionAsync())
-            {
-                try
-                {
-                    // 1. Deduct from Team Budget
-                    team.Budget -= bidAmount;
-
-                    // 2. Update Player details
-                    player.TeamId = teamId;
-                    player.SoldPrice = bidAmount;
-                    player.AuctionStatus = AuctionStatus.Sold;
-
-                    _context.Update(team);
-                    _context.Update(player);
-
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    TempData["Success"] = $"HAMMER DOWN! {player.Name} sold to {team.Name} for ₹{bidAmount:N0}.";
-                }
-                catch (Exception)
-                {
-                    await transaction.RollbackAsync();
-                    TempData["Error"] = "Critical error during auction transaction.";
-                }
-            }
-
+            TempData["Success"] = "Player sold successfully.";
             return RedirectToAction(nameof(Index));
         }
 
         // GET: Players/Details/5
+        [Authorize(Policy = Policies.CanViewFinancials)]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
 
-            var player = await _context.Players
-                .Include(p => p.Team)
-                .FirstOrDefaultAsync(m => m.Id == id);
-
+            var player = await _playerService.GetPlayerByIdAsync(id.Value);
             if (player == null) return NotFound();
 
             return View(player);
         }
 
         // GET: Players/Create
+        [Authorize(Roles = $"{Roles.Admin},{Roles.FranchiseOwner}")]
         public IActionResult Create()
         {
-            ViewData["TeamId"] = new SelectList(_context.Teams, "Id", "Name");
             return View();
         }
 
         // POST: Players/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Category,BasePrice,SoldPrice,AuctionStatus,TeamId,ImageFile")] Player player)
+        [Authorize(Roles = $"{Roles.Admin},{Roles.FranchiseOwner}")]
+        public async Task<IActionResult> Create(CreatePlayerDto dto)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                if (player.ImageFile != null)
-                {
-                    player.ProfilePicture = await UploadImage(player.ImageFile);
-                }
-
-                _context.Add(player);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return View(dto);
             }
-            ViewData["TeamId"] = new SelectList(_context.Teams, "Id", "Name", player.TeamId);
-            return View(player);
+
+            await _playerService.CreatePlayerAsync(dto);
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Players/Edit/5
+        [Authorize(Roles = $"{Roles.Admin},{Roles.FranchiseOwner}")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
 
-            var player = await _context.Players.FindAsync(id);
+            var player = await _playerService.GetPlayerByIdAsync(id.Value);
             if (player == null) return NotFound();
 
-            ViewData["TeamId"] = new SelectList(_context.Teams, "Id", "Name", player.TeamId);
-            return View(player);
+            var dto = new UpdatePlayerDto
+            {
+                Name = player.Name,
+                Category = player.Category,
+                BasePrice = player.BasePrice,
+                SoldPrice = player.SoldPrice,
+                AuctionStatus = player.AuctionStatus,
+                TeamId = player.TeamId
+            };
+
+            return View(dto);
         }
 
         // POST: Players/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Category,BasePrice,SoldPrice,AuctionStatus,TeamId,ProfilePicture,ImageFile")] Player player)
+        [Authorize(Roles = $"{Roles.Admin},{Roles.FranchiseOwner}")]
+        public async Task<IActionResult> Edit(int id, UpdatePlayerDto dto)
         {
-            if (id != player.Id) return NotFound();
+            if (id != dto.Id) return NotFound();
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    if (player.ImageFile != null)
-                    {
-                        // Delete old image if it exists to save space
-                        if (!string.IsNullOrEmpty(player.ProfilePicture))
-                        {
-                            string oldPath = Path.Combine(_hostEnvironment.WebRootPath, "images", "players", player.ProfilePicture);
-                            if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
-                        }
-                        player.ProfilePicture = await UploadImage(player.ImageFile);
-                    }
-
-                    _context.Update(player);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!PlayerExists(player.Id)) return NotFound();
-                    else throw;
-                }
-                return RedirectToAction(nameof(Index));
+                return View(dto);
             }
-            ViewData["TeamId"] = new SelectList(_context.Teams, "Id", "Name", player.TeamId);
-            return View(player);
+
+            await _playerService.UpdatePlayerAsync(id, dto);
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Players/Delete/5
+        [Authorize(Roles = Roles.Admin)]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
 
-            var player = await _context.Players
-                .Include(p => p.Team)
-                .FirstOrDefaultAsync(m => m.Id == id);
-
+            var player = await _playerService.GetPlayerByIdAsync(id.Value);
             if (player == null) return NotFound();
 
             return View(player);
@@ -191,47 +135,11 @@ namespace IPLAuctionSystem.Controllers
         // POST: Players/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var player = await _context.Players.FindAsync(id);
-            if (player != null)
-            {
-                // Delete physical image file
-                if (!string.IsNullOrEmpty(player.ProfilePicture))
-                {
-                    string filePath = Path.Combine(_hostEnvironment.WebRootPath, "images", "players", player.ProfilePicture);
-                    if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
-                }
-                _context.Players.Remove(player);
-            }
-
-            await _context.SaveChangesAsync();
+            await _playerService.DeletePlayerAsync(id);
             return RedirectToAction(nameof(Index));
-        }
-
-        private async Task<string> UploadImage(IFormFile file)
-        {
-            string wwwRootPath = _hostEnvironment.WebRootPath;
-            string fileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(file.FileName);
-            string uploadPath = Path.Combine(wwwRootPath, "images", "players");
-
-            if (!Directory.Exists(uploadPath))
-            {
-                Directory.CreateDirectory(uploadPath);
-            }
-
-            string fullPath = Path.Combine(uploadPath, fileName);
-            using (var fileStream = new FileStream(fullPath, FileMode.Create))
-            {
-                await file.CopyToAsync(fileStream);
-            }
-
-            return fileName;
-        }
-
-        private bool PlayerExists(int id)
-        {
-            return _context.Players.Any(e => e.Id == id);
         }
     }
 }

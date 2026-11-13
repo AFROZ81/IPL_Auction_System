@@ -124,7 +124,7 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge @GetCategoryClass(item.Category) rounded-pill px-3 py-2 text-uppercase" style="min-width: 100px;">
+                                <span class="badge @GetCategoryClass(item.Category ?? "") rounded-pill px-3 py-2 text-uppercase" style="min-width: 100px;">
                                     @item.Category
                                 </span>
                             </td>
@@ -156,7 +156,7 @@
                             <td>
                                 @if (item.AuctionStatus == IPLAuctionSystem.Models.AuctionStatus.Sold && item.Team != null)
                                 {
-                                    <span class="text-info fw-bold">@item.Team.Name</span>
+                                     <span class="text-info fw-bold">@item.Team?.Name ?? "Available"</span>
                                 }
                                 else
                                 {
@@ -213,7 +213,7 @@
                                                                 {
                                                                     foreach (var team in teams)
                                                                     {
-                                                                        <option value="@team.Id">@team.Name (Purse: @FormatCurrency((decimal)team.Budget))</option>
+                                                                         <option value="@team.Id">@team.Name (Purse: @FormatCurrency((decimal)(team.Budget ?? 0m)))</option>
                                                                     }
                                                                 }
                                                             </select>

@@ -1,49 +1,43 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using IPLAuctionSystem.Application.DTOs;
+using IPLAuctionSystem.Application.Interfaces;
+using IPLAuctionSystem.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using IPLAuctionSystem.Data;
-using IPLAuctionSystem.Models;
-using Microsoft.AspNetCore.Hosting;
-using System.IO;
 
 namespace IPLAuctionSystem.Controllers
 {
+    [Authorize]
     public class TeamsController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IWebHostEnvironment _hostEnvironment;
+        private readonly ITeamService _teamService;
 
-        public TeamsController(ApplicationDbContext context, IWebHostEnvironment hostEnvironment)
+        public TeamsController(ITeamService teamService)
         {
-            _context = context;
-            _hostEnvironment = hostEnvironment;
+            _teamService = teamService;
         }
 
         // GET: Teams
+        [Authorize(Policy = Policies.CanViewFinancials)]
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Teams.ToListAsync());
+            var teams = await _teamService.GetAllTeamsAsync();
+            return View(teams);
         }
 
         // GET: Teams/Details/5
+        [Authorize(Policy = Policies.CanViewFinancials)]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
 
-            var team = await _context.Teams
-                .Include(t => t.Players) // Include players to show roster in details
-                .FirstOrDefaultAsync(m => m.Id == id);
-
+            var team = await _teamService.GetTeamByIdAsync(id.Value);
             if (team == null) return NotFound();
 
             return View(team);
         }
 
         // GET: Teams/Create
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Auctioneer}")]
         public IActionResult Create()
         {
             return View();
@@ -52,78 +46,62 @@ namespace IPLAuctionSystem.Controllers
         // POST: Teams/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Owner,Budget,LogoFile")] Team team)
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Auctioneer}")]
+        public async Task<IActionResult> Create(CreateTeamDto dto)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                // Handle Logo Upload
-                if (team.LogoFile != null)
-                {
-                    team.TeamLogo = await SaveImage(team.LogoFile);
-                }
-
-                _context.Add(team);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return View(dto);
             }
-            return View(team);
+
+            await _teamService.CreateTeamAsync(dto);
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Teams/Edit/5
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Auctioneer}")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
 
-            var team = await _context.Teams.FindAsync(id);
+            var team = await _teamService.GetTeamByIdAsync(id.Value);
             if (team == null) return NotFound();
 
-            return View(team);
+            var dto = new UpdateTeamDto
+            {
+                Id = team.Id,
+                Name = team.Name,
+                Owner = team.Owner,
+                Budget = team.Budget
+            };
+
+            return View(dto);
         }
 
         // POST: Teams/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Owner,Budget,TeamLogo,LogoFile")] Team team)
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Auctioneer}")]
+        public async Task<IActionResult> Edit(int id, UpdateTeamDto dto)
         {
-            if (id != team.Id) return NotFound();
+            if (id != dto.Id) return NotFound();
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    // If a new file is uploaded
-                    if (team.LogoFile != null)
-                    {
-                        // Delete old logo if it exists
-                        if (!string.IsNullOrEmpty(team.TeamLogo))
-                        {
-                            DeleteOldImage(team.TeamLogo);
-                        }
-
-                        // Save new logo
-                        team.TeamLogo = await SaveImage(team.LogoFile);
-                    }
-
-                    _context.Update(team);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TeamExists(team.Id)) return NotFound();
-                    else throw;
-                }
-                return RedirectToAction(nameof(Index));
+                return View(dto);
             }
-            return View(team);
+
+            await _teamService.UpdateTeamAsync(id, dto);
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Teams/Delete/5
+        [Authorize(Roles = Roles.Admin)]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
 
-            var team = await _context.Teams
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var team = await _teamService.GetTeamByIdAsync(id.Value);
             if (team == null) return NotFound();
 
             return View(team);
@@ -132,51 +110,11 @@ namespace IPLAuctionSystem.Controllers
         // POST: Teams/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var team = await _context.Teams.FindAsync(id);
-            if (team != null)
-            {
-                // Clean up the image file from the server
-                if (!string.IsNullOrEmpty(team.TeamLogo))
-                {
-                    DeleteOldImage(team.TeamLogo);
-                }
-
-                _context.Teams.Remove(team);
-            }
-
-            await _context.SaveChangesAsync();
+            await _teamService.DeleteTeamAsync(id);
             return RedirectToAction(nameof(Index));
-        }
-
-        // --- Helper Methods for File Management ---
-
-        private async Task<string> SaveImage(IFormFile imageFile)
-        {
-            string wwwRootPath = _hostEnvironment.WebRootPath;
-            string fileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(imageFile.FileName);
-            string path = Path.Combine(wwwRootPath + "/images/teams/", fileName);
-
-            using (var fileStream = new FileStream(path, FileMode.Create))
-            {
-                await imageFile.CopyToAsync(fileStream);
-            }
-            return fileName;
-        }
-
-        private void DeleteOldImage(string fileName)
-        {
-            string filePath = Path.Combine(_hostEnvironment.WebRootPath + "/images/teams/", fileName);
-            if (System.IO.File.Exists(filePath))
-            {
-                System.IO.File.Delete(filePath);
-            }
-        }
-
-        private bool TeamExists(int id)
-        {
-            return _context.Teams.Any(e => e.Id == id);
         }
     }
 }

@@ -1,24 +1,32 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using IPLAuctionSystem.Data;
+﻿using IPLAuctionSystem.Application.DTOs;
+using IPLAuctionSystem.Application.Interfaces;
+using IPLAuctionSystem.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace IPLAuctionSystem.Controllers;
-
-public class DashboardController : Controller
+namespace IPLAuctionSystem.Controllers
 {
-    private readonly ApplicationDbContext _context;
-
-    public DashboardController(ApplicationDbContext context)
+    [Authorize(Policy = Policies.CanViewFinancials)]
+    public class DashboardController : Controller
     {
-        _context = context;
-    }
+        private readonly ITeamService _teamService;
+        private readonly IPlayerService _playerService;
 
-    public async Task<IActionResult> Index()
-    {
-        var teams = await _context.Teams.Include(t => t.Players).ToListAsync();
-        var topPlayer = await _context.Players.OrderByDescending(p => p.SoldPrice).FirstOrDefaultAsync();
+        public DashboardController(ITeamService teamService, IPlayerService playerService)
+        {
+            _teamService = teamService;
+            _playerService = playerService;
+        }
 
-        ViewBag.TopPlayer = topPlayer;
-        return View(teams);
+        public async Task<IActionResult> Index()
+        {
+            var teams = await _teamService.GetAllTeamsAsync();
+            var players = await _playerService.GetAllPlayersAsync();
+
+            var topPlayer = players.OrderByDescending(p => p.SoldPrice).FirstOrDefault();
+            ViewBag.TopPlayer = topPlayer;
+
+            return View(teams);
+        }
     }
 }

@@ -92,12 +92,12 @@
             @foreach (var team in teams)
             {
                 @* Assuming a standard 100 Cr budget for percentage calculation *@
-                var spentPercent = GetSpentPercentage(1000000000, (decimal)team.Budget);
+                var spentPercent = GetSpentPercentage(1000000000, team.Budget ?? 0m);
                 <div class="col-md-3 mb-3">
                     <div class="card bg-dark border-secondary p-3 shadow-sm h-100">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <span class="text-white fw-bold small">@team.Name</span>
-                            <span class="text-warning fw-bold small">@FormatCurrency((decimal)team.Budget)</span>
+                            <span class="text-warning fw-bold small">@FormatCurrency(team.Budget ?? 0m)</span>
                         </div>
                         <div class="progress bg-secondary" style="height: 6px;">
                             <div class="progress-bar @(spentPercent > 80 ? "bg-danger" : spentPercent > 50 ? "bg-warning" : "bg-success")"

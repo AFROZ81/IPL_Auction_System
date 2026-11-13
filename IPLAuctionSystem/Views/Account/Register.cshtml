@@ -1,0 +1,61 @@
+@model IPLAuctionSystem.Application.DTOs.RegisterDto
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0"><i class="fa-solid fa-user-plus me-2"></i>Create Account</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Register" method="post">
+                        <input type="hidden" asp-for="ReturnUrl" />
+                        <div asp-validation-summary="All" class="text-danger"></div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input asp-for="Email" class="form-control" placeholder="user@iplauction.com" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">First Name</label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                            <div class="form-text">Minimum 12 characters, must include uppercase, lowercase, number, and special character.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select asp-for="Role" class="form-select">
+                                <option value="@IPLAuctionSystem.Domain.Constants.Roles.Viewer">Viewer</option>
+                                <option value="@IPLAuctionSystem.Domain.Constants.Roles.FranchiseOwner">Franchise Owner</option>
+                                <option value="@IPLAuctionSystem.Domain.Constants.Roles.Auctioneer">Auctioneer</option>
+                                <option value="@IPLAuctionSystem.Domain.Constants.Roles.Admin">Admin</option>
+                            </select>
+                            <span asp-validation-for="Role" class="text-danger"></span>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Register</button>
+                    </form>
+                    <div class="mt-3 text-center">
+                        <p>Already have an account? <a asp-action="Login">Login here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -4,7 +4,7 @@
     ViewData["Title"] = "Auction Intelligence 2026";
 
     // Summing Budget (Budget is likely non-nullable decimal)
-    var totalRemainingBudget = Model.Sum(t => (decimal)t.Budget);
+    var totalRemainingBudget = Model.Sum(t => (decimal)(t.Budget ?? 0m));
 
     // Summing SoldPrice (Sum returns null if list is empty, so we use decimal?)
     var totalSpent = Model.Sum(t => t.Players?.Sum(p => (decimal?)p.SoldPrice) ?? 0m);
@@ -74,8 +74,8 @@
                         @foreach (var team in Model.OrderByDescending(t => t.Budget).Take(5))
                         {
                             <div class="bidder-item">
-                                <div class="name">@team.Name.ToUpper()</div>
-                                <div class="price text-warning">@FormatCurrency((decimal)team.Budget)</div>
+                                 <div class="name">@(team.Name ?? string.Empty).ToUpper()</div>
+                                <div class="price text-warning">@FormatCurrency((decimal)(team.Budget ?? 0m))</div>
                             </div>
                         }
                     </div>
@@ -119,7 +119,7 @@
                                     var squadCount = team.Players?.Count ?? 0;
                                     var remainingSlots = 25 - squadCount;
                                     var reservedForSquad = remainingSlots * 2000000m;
-                                    var maxBid = (decimal)team.Budget - reservedForSquad;
+                                    var maxBid = (decimal)(team.Budget ?? 0m) - reservedForSquad;
                                     var collapseId = "squad_" + team.Id;
 
                                     <tr class="align-middle clickable-row" data-bs-toggle="collapse" data-bs-target="#@collapseId" style="cursor: pointer;">
@@ -127,7 +127,7 @@
                                             <div class="d-flex align-items-center">
                                                 <i class="fa-solid fa-chevron-right me-3 text-muted collapse-arrow"></i>
                                                 <div>
-                                                    <div class="fw-bold text-white">@team.Name.ToUpper()</div>
+                                                    <div class="fw-bold text-white">@(team.Name ?? string.Empty).ToUpper()</div>
                                                     <div class="tiny text-muted text-uppercase">Click to view roster</div>
                                                 </div>
                                             </div>
@@ -140,7 +140,7 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="text-warning fw-bold">@FormatCurrency((decimal)team.Budget)</td>
+                                        <td class="text-warning fw-bold">@FormatCurrency((decimal)(team.Budget ?? 0m))</td>
                                         <td class="text-end text-white fw-bold">
                                             <span class="text-success">@FormatCurrency(maxBid > 0 ? maxBid : 0)</span>
                                         </td>
@@ -381,10 +381,10 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const fullNames = @Html.Raw(Json.Serialize(Model.Select(t => t.Name.ToUpper())));
-        const shortNames = @Html.Raw(Json.Serialize(Model.Select(t => GetShortName(t.Name))));
-        const budgets = @Html.Raw(Json.Serialize(Model.Select(t => t.Budget)));
-        const spent = @Html.Raw(Json.Serialize(Model.Select(t => t.Players?.Sum(p => (decimal)p.SoldPrice) ?? 0m)));
+        const fullNames = @Html.Raw(Json.Serialize(Model.Select(t => (t.Name ?? string.Empty).ToUpper())));
+        const shortNames = @Html.Raw(Json.Serialize(Model.Select(t => GetShortName(t.Name ?? string.Empty))));
+        const budgets = @Html.Raw(Json.Serialize(Model.Select(t => t.Budget ?? 0m)));
+        const spent = @Html.Raw(Json.Serialize(Model.Select(t => t.Players?.Sum(p => p.SoldPrice) ?? 0m)));
 
         // Custom formatting function for lakhs/crores
         function jsFormat(v) {

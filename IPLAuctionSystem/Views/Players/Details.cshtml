@@ -1,7 +1,36 @@
 ﻿@model IPLAuctionSystem.Models.Player
+#pragma warning disable CS8602
 
 @{
     ViewData["Title"] = "Player Profile";
+
+    var categoryBg = (Model.Category ?? string.Empty).ToLower().Trim() switch
+    {
+        "batsman" => "bg-primary",
+        "bowler" => "bg-danger",
+        "all-rounder" => "bg-info",
+        "wicketkeeper" => "bg-warning",
+        _ => "bg-secondary"
+    };
+
+    var categoryIcon = (Model.Category ?? string.Empty).ToLower().Trim() switch
+    {
+        "batsman" => "fa-solid fa-bat-ball",
+        "bowler" => "fa-solid fa-baseball",
+        "all-rounder" => "fa-solid fa-bolt",
+        "wicketkeeper" => "fa-solid fa-hands",
+        _ => "fa-solid fa-user"
+    };
+
+    var hasProfile = !string.IsNullOrEmpty(Model.ProfilePicture);
+    var profileSrc = Model.ProfilePicture ?? string.Empty;
+    var playerName = Model.Name ?? string.Empty;
+    var playerCategory = Model.Category ?? string.Empty;
+    var teamNameDisplay = Model.Team?.Name ?? "Free Agent";
+    var soldPriceDisplay = Model.AuctionStatus == AuctionStatus.Sold ? FormatCurrency(Model.SoldPrice) : "N/A";
+    var basePriceDisplay = FormatCurrency(Model.BasePrice);
+    var playerIdDisplay = $"#PLY-{Model.Id:D4}";
+    var playerId = Model.Id;
 }
 
 @functions {
@@ -13,7 +42,7 @@
         return $"₹ {amount.ToString("N0")}";
     }
 
-    public string GetCategoryBg(string cat) => cat?.ToLower().Trim() switch
+    public string GetCategoryBg(string? cat) => cat?.ToLower().Trim() switch
     {
         "batsman" => "bg-primary",
         "bowler" => "bg-danger",
@@ -22,7 +51,7 @@
         _ => "bg-secondary"
     };
 
-    public string GetCategoryIcon(string cat) => cat?.ToLower().Trim() switch
+    public string GetCategoryIcon(string? cat) => cat?.ToLower().Trim() switch
     {
         "batsman" => "fa-solid fa-bat-ball",
         "bowler" => "fa-solid fa-baseball",
@@ -39,7 +68,7 @@
             <i class="fa-solid fa-chevron-left me-2"></i>Back to Roster
         </a>
         <div class="btn-group shadow">
-            <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning px-4">
+            <a asp-action="Edit" asp-route-id="@playerId" class="btn btn-warning px-4">
                 <i class="fa-solid fa-user-pen me-2"></i>Edit Profile
             </a>
         </div>
@@ -49,25 +78,25 @@
         @* --- LEFT COLUMN: PLAYER IDENTITY CARD --- *@
         <div class="col-lg-4">
             <div class="card bg-dark border-secondary shadow-lg text-center h-100 overflow-hidden">
-                <div class="py-5 @GetCategoryBg(Model.Category) text-white">
+                    <div class="py-5 @categoryBg text-white">
                     <div class="mx-auto mb-3 shadow-lg position-relative" style="width: 160px; height: 160px;">
-                        @if (!string.IsNullOrEmpty(Model.ProfilePicture))
-                        {
-                            <img src="~/images/players/@Model.ProfilePicture"
+                @if (hasProfile)
+                {
+                    <img src="~/images/players/@profileSrc"
                                  class="rounded-circle border border-4 border-white shadow w-100 h-100"
                                  style="object-fit: cover;"
-                                 alt="@Model.Name" />
+                                 alt="@playerName" />
                         }
                         else
                         {
                             <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center w-100 h-100 border border-4 border-white shadow"
                                  style="font-size: 4rem;">
-                                <i class="@GetCategoryIcon(Model.Category)"></i>
+                                 <i class="@categoryIcon"></i>
                             </div>
                         }
                     </div>
-                    <h2 class="fw-bold mb-0 text-uppercase tracking-tighter">@Model.Name</h2>
-                    <span class="badge bg-white text-dark rounded-pill px-3 py-2 mt-2 fw-bold">@Model.Category</span>
+                    <h2 class="fw-bold mb-0 text-uppercase tracking-tighter">@playerName</h2>
+                    <span class="badge bg-white text-dark rounded-pill px-3 py-2 mt-2 fw-bold">@playerCategory</span>
                 </div>
 
                 <div class="card-body p-4">
@@ -89,7 +118,7 @@
 
                     <div class="p-3 rounded bg-accent border border-secondary">
                         <label class="text-secondary small fw-bold text-uppercase d-block mb-1">Assigned Franchise</label>
-                        <h5 class="text-info mb-0">@(Model.Team?.Name ?? "Free Agent")</h5>
+                        <h5 class="text-info mb-0">@teamNameDisplay</h5>
                     </div>
                 </div>
             </div>
@@ -109,7 +138,7 @@
                         <div class="col-md-6">
                             <div class="p-4 rounded-4 border border-secondary h-100 shadow-sm" style="background: linear-gradient(145deg, #1e293b, #0f172a);">
                                 <h6 class="text-secondary text-uppercase fw-bold mb-3">Base Price</h6>
-                                <h2 class="text-white fw-bold mb-0">@FormatCurrency((decimal)Model.BasePrice)</h2>
+                                 <h2 class="text-white fw-bold mb-0">@basePriceDisplay</h2>
                                 <p class="text-muted small mt-2 mb-0">Minimum valuation for entry</p>
                             </div>
                         </div>
@@ -119,7 +148,7 @@
                             <div class="p-4 rounded-4 border @(Model.AuctionStatus == AuctionStatus.Sold ? "border-success" : "border-secondary") h-100 shadow-sm" style="background: linear-gradient(145deg, #1e293b, #0f172a);">
                                 <h6 class="text-secondary text-uppercase fw-bold mb-3">Sold Price</h6>
                                 <h2 class="@(Model.AuctionStatus == AuctionStatus.Sold ? "text-success" : "text-muted") fw-bold mb-0">
-                                    @(Model.AuctionStatus == AuctionStatus.Sold ? FormatCurrency((decimal) Model.SoldPrice) : "N/A")
+                                     @soldPriceDisplay
                                 </h2>
                                 <p class="text-muted small mt-2 mb-0">Final Hammer Price</p>
                             </div>
@@ -131,7 +160,7 @@
                         <div class="row text-white small">
                             <div class="col-6 mb-3">
                                 <span class="text-muted d-block">System ID</span>
-                                <span class="font-monospace text-warning">#PLY-@(Model.Id.ToString("D4"))</span>
+                                 <span class="font-monospace text-warning">@playerIdDisplay</span>
                             </div>
                             <div class="col-6 mb-3 text-end">
                                 <span class="text-muted d-block">Entry Season</span>
@@ -165,3 +194,6 @@
         color: #f8fafc;
     }
 </style>
+@{
+#pragma warning restore CS8602
+}

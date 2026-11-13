@@ -47,7 +47,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-secondary text-uppercase small fw-bold">Total Purse Capital</h6>
-                            <h2 class="text-success mb-0">@FormatCurrency(Model.Sum(t => (decimal)t.Budget))</h2>
+                            <h2 class="text-success mb-0">@FormatCurrency(Model.Sum(t => (decimal)(t.Budget ?? 0m)))</h2>
                         </div>
                         <i class="fa-solid fa-money-bill-trend-up text-success opacity-25 fs-1"></i>
                     </div>
@@ -88,7 +88,7 @@
                                             {
                                                 <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center shadow-sm"
                                                      style="width: 55px; height: 55px; font-weight: 800; font-size: 1.4rem;">
-                                                    @item.Name.Substring(0, 1)
+                                                    @item.Name?.Substring(0, 1) ?? "?"
                                                 </div>
                                             }
                                         </div>
@@ -104,9 +104,9 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-success-subtle text-success fs-6 px-3 py-2 border border-success">
-                                        @FormatCurrency((decimal)item.Budget)
-                                    </span>
+                                        <span class="badge bg-success-subtle text-success fs-6 px-3 py-2 border border-success">
+                                            @FormatCurrency((decimal)(item.Budget ?? 0m))
+                                        </span>
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex align-items-center justify-content-center">

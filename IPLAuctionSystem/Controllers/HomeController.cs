@@ -1,34 +1,30 @@
+using IPLAuctionSystem.Application.DTOs;
+using IPLAuctionSystem.Application.Interfaces;
+using IPLAuctionSystem.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using IPLAuctionSystem.Data; // Ensure this matches your project's data namespace
-using IPLAuctionSystem.Models;
 
 namespace IPLAuctionSystem.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
-        // 1. Declare the private field
-        private readonly ApplicationDbContext _context;
+        private readonly ITeamService _teamService;
+        private readonly IPlayerService _playerService;
 
-        // 2. Inject the context via the Constructor
-        public HomeController(ApplicationDbContext context)
+        public HomeController(ITeamService teamService, IPlayerService playerService)
         {
-            _context = context;
+            _teamService = teamService;
+            _playerService = playerService;
         }
 
         public async Task<IActionResult> Index()
         {
-            // 1. Fetch the players for the main feed/top picks
-            var players = await _context.Players
-                .Include(p => p.Team)
-                .ToListAsync();
+            var players = await _playerService.GetAllPlayersAsync();
+            var teams = await _teamService.GetAllTeamsAsync();
 
-            // 2. Fetch the teams for the Purse Tracker (This is what was missing!)
-            ViewBag.Teams = await _context.Teams.ToListAsync();
-
+            ViewBag.Teams = teams;
             return View(players);
         }
-
-        // ... Keep your other Privacy or Error actions below ...
     }
 }
